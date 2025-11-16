@@ -2,22 +2,24 @@ const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema;
 
-// This is the schema for our Trip
-// It defines the data structure for a "Trip" document
+// Removed minlength: 3 validation rule
 const tripSchema = new Schema({
   name: {
     type: String,
     required: true,
-    trim: true,
-    minlength: 3
+    trim: true
   },
-  // We will add participants and expenses here later
+  // --- NEW ---
+  // Add a reference to the User who owns this trip
+  userId: {
+    type: mongoose.Schema.Types.ObjectId, // This is a special data type for MongoDB IDs
+    ref: 'User', // This tells Mongoose it refers to our 'User' model
+    required: true
+  }
 }, {
-  timestamps: true, // This automatically adds "createdAt" and "updatedAt" fields
+  timestamps: true,
 });
 
-// We compile the schema into a "Model"
 const Trip = mongoose.model('Trip', tripSchema);
 
-// And export it so we can use it in other files
 module.exports = Trip;
