@@ -32,7 +32,9 @@ const startServer = async () => {
     const participantsRouter = require('./routes/participants');
     const expensesRouter = require('./routes/expenses');
     const authRouter = require('./routes/auth'); // <-- NEW: Import Auth Router
-    
+    const invitationsRouter = require('./routes/invitations');
+   
+    app.use('/invitations', invitationsRouter);
     app.use('/auth', authRouter); // <-- NEW: Use Auth Routes under /auth
     app.use('/trips', tripsRouter);
     app.use('/participants', participantsRouter);

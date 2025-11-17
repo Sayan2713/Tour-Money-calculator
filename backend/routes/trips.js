@@ -1,14 +1,19 @@
 const router = require('express').Router();
-const auth = require('../middleware/auth'); // <-- NEW: Import the auth middleware
-let Trip = require('../models/trip.model');
-let Participant = require('../models/participant.model');
-let Expense = require('../models/expense.model');
+const auth = require('../middleware/auth');
+let Trip = require('../models/trip.model'); // Make sure this matches your file name (Trip.js or trip.model.js)
+let Participant = require('../models/participant.model'); // Adjust if your file is named differently
+let Expense = require('../models/expense.model');         // Adjust if your file is named differently
 
 // --- GET All Trips (Protected) ---
-// We add 'auth' middleware. This route will now require a valid token.
 router.route('/').get(auth, (req, res) => {
-  // We only find trips where the userId matches the user's ID from the token
-  Trip.find({ userId: req.user.id })
+  // UPDATED QUERY:
+  // Find trips where the user is the Owner OR the user is a Member
+  Trip.find({ 
+    $or: [
+        { userId: req.user.id },       // You are the owner
+        { members: req.user.id }       // You are a member
+    ]
+  })
     .then(trips => res.json(trips))
     .catch(err => res.status(400).json('Error: ' + err));
 });
@@ -16,11 +21,12 @@ router.route('/').get(auth, (req, res) => {
 // --- ADD a New Trip (Protected) ---
 router.route('/add').post(auth, (req, res) => {
   const name = req.body.name;
-  const userId = req.user.id; // <-- NEW: Get the user's ID from the middleware
+  const userId = req.user.id;
 
   const newTrip = new Trip({
     name,
-    userId, // <-- NEW: Save the owner's ID
+    userId,
+    members: [] // Initialize with empty members list
   });
 
   newTrip.save()
@@ -29,22 +35,26 @@ router.route('/add').post(auth, (req, res) => {
 });
 
 // --- DELETE a Trip (Protected) ---
+// NOTE: We keep this strictly for the OWNER. 
+// Members should not be able to delete the whole trip for everyone.
 router.route('/delete/:id').delete(auth, async (req, res) => {
   const tripId = req.params.id;
   const userId = req.user.id;
 
   try {
-    // First, verify the user owns this trip
+    // Verify the user OWNS this trip
     const trip = await Trip.findOne({ _id: tripId, userId: userId });
     if (!trip) {
-      return res.status(401).json('Error: Trip not found or user not authorized.');
+      return res.status(401).json('Error: Trip not found or you are not the owner.');
     }
 
-    // 1. Delete all associated Expenses (that match tripId AND userId)
-    await Expense.deleteMany({ tripId: tripId, userId: userId });
+    // 1. Delete associated Expenses
+    // Note: We remove 'userId: userId' check here because the owner should be able
+    // to delete ALL expenses in the trip, even if a friend added them.
+    await Expense.deleteMany({ tripId: tripId });
 
-    // 2. Delete all associated Participants (that match tripId AND userId)
-    await Participant.deleteMany({ tripId: tripId, userId: userId });
+    // 2. Delete associated Participants
+    await Participant.deleteMany({ tripId: tripId });
 
     // 3. Delete the Trip itself
     await Trip.findByIdAndDelete(tripId);

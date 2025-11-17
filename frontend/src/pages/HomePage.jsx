@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import api from '../api'; // Import the new api instance
-import { useAuth } from '../context/AuthCOntext'; // Import the auth hook
+import api from '../api';
+import { useAuth } from '../context/AuthContext';
 
 // ##################################################################
-// #  MAIN TRIPSPLIT APP COMPONENT (Renamed to "HomePage")
+// #  MAIN TRIPSPLIT APP COMPONENT (HomePage)
 // ##################################################################
-export default function HomePage() { // <-- Corrected function name
-  const { logout } = useAuth(); // Get logout function from context
+export default function HomePage() {
+  const { logout } = useAuth();
 
   // --- State Variables ---
   const [trips, setTrips] = useState([]);
@@ -28,15 +28,21 @@ export default function HomePage() { // <-- Corrected function name
     sharedBy: []
   });
 
+  // --- NEW: Invitation State ---
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteStatus, setInviteStatus] = useState('idle'); // idle, loading, success, error
+  const [inviteMsg, setInviteMsg] = useState('');
+
   const [loadingTrips, setLoadingTrips] = useState(true);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [loadingExpenses, setLoadingExpenses] = useState(false);
   const [error, setError] = useState(null);
 
   // --- Utility: Alert Helper ---
-  const showAlert = (message, type = 'success') => { // Default to success
+  const showAlert = (message, type = 'success') => {
     setError({ message, type });
-    setTimeout(() => setError(null), 3000); // 3 seconds
+    setTimeout(() => setError(null), 3000);
   };
 
   // --- Data Fetching Effects ---
@@ -55,7 +61,6 @@ export default function HomePage() { // <-- Corrected function name
   }, [selectedTrip]);
 
   useEffect(() => {
-    // Only update sharedBy if we're NOT in editing mode
     if (!editingExpenseId) {
       setNewExpense(prev => ({
         ...prev,
@@ -65,15 +70,13 @@ export default function HomePage() { // <-- Corrected function name
   }, [participants, editingExpenseId]);
 
 
-  // --- API Functions (Now using 'api' instance) ---
-  
+  // --- API Functions ---
   const fetchTrips = () => {
     setLoadingTrips(true);
     api.get('/trips/')
       .then(response => {
         setTrips(response.data);
         setLoadingTrips(false);
-        // Select first trip if none is selected
         if (!selectedTrip && response.data.length > 0) {
             setSelectedTrip(response.data[0]);
         }
@@ -81,7 +84,7 @@ export default function HomePage() { // <-- Corrected function name
       .catch(error => {
         showAlert('Error fetching trips.', 'error');
         setLoadingTrips(false);
-        if (error.response?.status === 401) logout(); // Use logout from context
+        if (error.response?.status === 401) logout();
       });
   };
 
@@ -118,7 +121,7 @@ export default function HomePage() { // <-- Corrected function name
       .then(res => {
         setNewTripName('');
         fetchTrips(); 
-        showAlert('Trip added successfully!', 'success'); // SUCCESS MESSAGE
+        showAlert('Trip added successfully!', 'success');
       })
       .catch(error => {
         const msg = error.response?.data?.Error || 'Could not add trip.';
@@ -126,7 +129,6 @@ export default function HomePage() { // <-- Corrected function name
       });
   };
 
-  // --- DELETE FUNCTIONS ---
   const handleDeleteTrip = (tripId) => {
     if (!window.confirm('Are you sure you want to delete this trip and all its data?')) return;
     api.delete(`/trips/delete/${tripId}`)
@@ -138,12 +140,49 @@ export default function HomePage() { // <-- Corrected function name
         .catch(error => showAlert(error.response?.data?.Error || 'Could not delete trip.', 'error'));
   };
 
+  // --- NEW: Invitation Functions ---
+  const openInviteModal = (e, trip) => {
+    e.stopPropagation(); // Stop the click from selecting the trip background
+    setSelectedTrip(trip); // Ensure we are inviting to the right trip
+    setShowInviteModal(true);
+    setInviteStatus('idle');
+    setInviteEmail('');
+    setInviteMsg('');
+  };
+
+  const handleSendInvite = async (e) => {
+    e.preventDefault();
+    if (!inviteEmail || !selectedTrip) return;
+
+    setInviteStatus('loading');
+    setInviteMsg('');
+
+    try {
+      await api.post('/invitations/send', {
+        email: inviteEmail,
+        tripId: selectedTrip._id
+      });
+      
+      setInviteStatus('success');
+      setInviteMsg('Invitation sent successfully!');
+      
+      // Close modal after 2 seconds
+      setTimeout(() => {
+        setShowInviteModal(false);
+      }, 2000);
+
+    } catch (err) {
+      setInviteStatus('error');
+      setInviteMsg(err.response?.data?.msg || 'Failed to send invitation.');
+    }
+  };
+
+  // --- Standard Delete/Add/Edit Functions ---
   const handleDeleteParticipant = (participantId) => {
     if (!window.confirm('Delete this participant? This may affect existing expenses.')) return;
     api.delete(`/participants/delete/${participantId}`)
         .then(() => {
             showAlert('Participant deleted!', 'success');
-            // Re-fetch both participants and expenses, as calculations will change
             fetchParticipants(selectedTrip._id);
             fetchExpenses(selectedTrip._id);
         })
@@ -155,12 +194,11 @@ export default function HomePage() { // <-- Corrected function name
     api.delete(`/expenses/delete/${expenseId}`)
         .then(() => {
             showAlert('Expense deleted!', 'success');
-            fetchExpenses(selectedTrip._id); // Re-fetch expenses to update calculations
+            fetchExpenses(selectedTrip._id);
         })
         .catch(error => showAlert(error.response?.data?.Error || 'Could not delete expense.', 'error'));
   };
 
-  // --- ADD FUNCTIONS ---
   const handleAddParticipant = (e) => {
     e.preventDefault();
     if (!newParticipantName || !selectedTrip) return;
@@ -171,7 +209,7 @@ export default function HomePage() { // <-- Corrected function name
       .then(res => {
         setNewParticipantName('');
         fetchParticipants(selectedTrip._id);
-        showAlert('Participant added!', 'success'); // SUCCESS MESSAGE
+        showAlert('Participant added!', 'success');
       })
       .catch(error => showAlert(error.response?.data?.Error || 'Could not add participant.', 'error'));
   };
@@ -194,17 +232,16 @@ export default function HomePage() { // <-- Corrected function name
         tripId: selectedTrip._id
     })
       .then(res => {
-        setNewExpense(prev => ({ // Reset form
+        setNewExpense(prev => ({ 
             title: '', amount: '', category: 'Food', payer: '', 
             sharedBy: participants.map(p => p.name) 
         }));
         fetchExpenses(selectedTrip._id);
-        showAlert('Expense added!', 'success'); // SUCCESS MESSAGE
+        showAlert('Expense added!', 'success');
       })
       .catch(error => showAlert(error.response?.data?.Error || 'Could not add expense.', 'error'));
   };
 
-  // --- EDIT FUNCTIONS ---
   const handleEditExpense = (expense) => {
     setEditingExpenseId(expense._id);
     setEditedExpense({
@@ -222,15 +259,15 @@ export default function HomePage() { // <-- Corrected function name
     }
 
     api.put(`/expenses/update/${editingExpenseId}`, {
-      ...editedExpense, // Send all fields from the editedExpense state
+      ...editedExpense,
       amount: amount,
-      tripId: selectedTrip._id // Ensure tripId is included
+      tripId: selectedTrip._id
     })
     .then(() => {
       showAlert('Expense updated!', 'success');
       setEditingExpenseId(null);
       setEditedExpense({});
-      fetchExpenses(selectedTrip._id); // Re-fetch to update calculations
+      fetchExpenses(selectedTrip._id);
     })
     .catch(error => showAlert(error.response?.data?.Error || 'Could not update expense.', 'error'));
   };
@@ -263,7 +300,6 @@ export default function HomePage() { // <-- Corrected function name
     });
 
     expenses.forEach(e => {
-        // Only calculate for participants who still exist
         const validSharers = e.sharedBy.filter(name => participantNames.includes(name));
         if (validSharers.length === 0 || e.amount <= 0) return;
         
@@ -309,11 +345,10 @@ export default function HomePage() { // <-- Corrected function name
     return { netPayments, totalSpent, balances };
   }, [expenses, participants]);
 
-  // --- Render Functions ---
+  // --- Render Helpers ---
   const renderAlert = () => {
     if (!error) return null;
     const isSuccess = error.type === 'success';
-    // Positioned to appear below the sticky navbar
     return (
       <div className={`fixed top-20 right-4 z-50 p-4 rounded-lg shadow-lg text-white font-semibold ${isSuccess ? 'bg-green-500' : 'bg-red-500'}`}>
         {error.message}
@@ -383,27 +418,60 @@ export default function HomePage() { // <-- Corrected function name
 
   // --- Main Render ---
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-8">
+    <div className="max-w-7xl mx-auto p-4 sm:p-8 relative">
       {renderAlert()}
-      
-      {/* This layout is structured for your desktop request,
-        while also fixing the mobile stacking order.
 
-        - On mobile (default), it's a single column (1, 2, 3, 4, 5).
-        - On large screens (lg:), it's a multi-column grid.
-      */}
+      {/* --- NEW: Invitation Modal --- */}
+      {showInviteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative">
+            <button 
+              onClick={() => setShowInviteModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">Invite Friend</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Send an invitation link to a friend to join <strong>{selectedTrip?.name}</strong>.
+            </p>
+            
+            <form onSubmit={handleSendInvite}>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Friend's Email</label>
+              <input 
+                type="email" 
+                required
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="friend@example.com"
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 mb-4"
+              />
+              
+              {inviteStatus === 'error' && <p className="text-red-500 text-sm mb-4">{inviteMsg}</p>}
+              {inviteStatus === 'success' && <p className="text-green-500 text-sm mb-4">{inviteMsg}</p>}
+
+              <button 
+                type="submit" 
+                disabled={inviteStatus === 'loading' || inviteStatus === 'success'}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg disabled:opacity-50"
+              >
+                {inviteStatus === 'loading' ? 'Sending...' : 'Send Invitation'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
       
-      {/* --- Top Row (Desktop): 3 Columns --- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* --- Col 1 (Desktop) --- */}
-        {/* Contains Trip Setup (1) and Participants (2) */}
         <div className="lg:col-span-1 space-y-6">
           
           {/* 1. Trip Setup */}
           <section id="section-1-trip" className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">1. Trip Setup</h2>
-            <form onSubmit={handleAddTrip} className="flex space-x-2 mb.4">
+            <form onSubmit={handleAddTrip} className="flex space-x-2 mb-4">
               <input
                 type="text"
                 value={newTripName}
@@ -411,10 +479,7 @@ export default function HomePage() { // <-- Corrected function name
                 placeholder="New trip name"
                 className="flex-grow w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <button
-                type="submit"
-                className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition duration-200 shadow-sm"
-              >
+              <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition duration-200 shadow-sm">
                 Create
               </button>
             </form>
@@ -429,14 +494,23 @@ export default function HomePage() { // <-- Corrected function name
                     className={`p-3 rounded-lg flex justify-between items-center cursor-pointer transition ${selectedTrip?._id === trip._id ? 'bg-blue-200 border-blue-500 border-2' : 'bg-gray-50 hover:bg-gray-100'}`}
                   >
                     <span className="font-medium text-lg text-gray-700">{trip.name}</span>
-                    {selectedTrip?._id === trip._id && (
+                    <div className="flex space-x-2">
+                      {/* --- NEW: Invite Button --- */}
+                      <button
+                        onClick={(e) => openInviteModal(e, trip)}
+                        className="text-xs bg-indigo-500 hover:bg-indigo-600 text-white px-2 py-1 rounded"
+                        title="Invite Friend"
+                      >
+                        Invite
+                      </button>
+                      {/* Note: You might want to conditionally show the Delete button only if user is owner */}
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDeleteTrip(trip._id); }}
                         className="text-xs bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded"
                       >
                         Delete
                       </button>
-                    )}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -477,7 +551,6 @@ export default function HomePage() { // <-- Corrected function name
         </div>
 
         {/* --- Col 2 (Desktop) --- */}
-        {/* Contains Expense Entry (3) */}
         <div className="lg:col-span-1 space-y-6">
           {/* 3. Expense Entry */}
           <section id="section-3-expense-entry" className={`bg-white rounded-lg shadow-md p-6 ${!selectedTrip ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -521,9 +594,8 @@ export default function HomePage() { // <-- Corrected function name
         </div>
 
         {/* --- Col 3 (Desktop) --- */}
-        {/* Contains Settlement Summary (4) */}
         <div className="lg:col-span-1 space-y-6">
-          <section id="section-4-summary" className={`bg-white rounded-lg shadow-md p-6 sticky top-20 ${!selectedTrip ? 'opacity-50' : ''}`}> {/* sticky top-20 to offset navbar */}
+          <section id="section-4-summary" className={`bg-white rounded-lg shadow-md p-6 sticky top-20 ${!selectedTrip ? 'opacity-50' : ''}`}> 
             <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">4. Settlement Summary</h2>
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-blue-50 p-4 rounded-lg text-center">
@@ -585,7 +657,6 @@ export default function HomePage() { // <-- Corrected function name
       </div>
 
       {/* --- Bottom Row (Full Width) --- */}
-      {/* Contains Expense Log (5) */}
       <div className="mt-6">
         <section id="section-5-expense-log" className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">5. Expense Log</h2>
