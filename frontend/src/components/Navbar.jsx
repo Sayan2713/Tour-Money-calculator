@@ -1,40 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // <-- Added useEffect
 import { Link, useNavigate } from 'react-router-dom';
+import api from '../api'; // <-- Need api to fetch image
 
-// ##################################################################
-// #  NAVBAR COMPONENT
-// ##################################################################
 const NavBar = ({ onLogout }) => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const navigate = useNavigate(); // Hook to programmatically navigate
+  const [userImage, setUserImage] = useState(null); // <-- Store image
+  const navigate = useNavigate();
 
-  // Function to smoothly scroll to a section on the 'home' page
+  // Fetch user image on load
+  useEffect(() => {
+    api.get('/users')
+      .then(res => {
+        if (res.data.profilePicture) {
+          setUserImage(res.data.profilePicture);
+        }
+      })
+      .catch(err => console.log("Nav load error", err));
+  }, []);
+
   const scrollTo = (id) => {
-    // First, ensure we are on the 'home' page
     navigate('/');
-    
-    // We use setTimeout to ensure the DOM has updated (if switching pages)
-    // before we try to find the element to scroll to.
     setTimeout(() => {
       const element = document.getElementById(id);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 50); // A small delay is usually enough
-    
-    setMobileMenuOpen(false); // Close mobile menu after click
-    setProfileOpen(false); // Close profile menu
-  };
-  
-  // This function is for page links in the profile dropdown
-  const handleProfileLink = (path) => {
-    navigate(path);
+      if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+    setMobileMenuOpen(false);
     setProfileOpen(false);
   };
-
-  // --- Menu Links ---
-  // We separate scroll links (on the home page) from page links (new pages)
+  
+  // Links
   const scrollLinks = [
     { name: 'Trip Setup', id: 'section-1-trip' },
     { name: 'Participants', id: 'section-2-participants' },
@@ -53,7 +48,7 @@ const NavBar = ({ onLogout }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           
-          {/* Logo / Brand - Use <Link> */}
+          {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
             <Link to="/" className="text-2xl font-bold text-blue-600 cursor-pointer" onClick={() => setMobileMenuOpen(false)}>
               TripSplit
@@ -74,39 +69,37 @@ const NavBar = ({ onLogout }) => {
             ))}
           </div>
 
-          {/* Profile & Mobile Menu Button */}
+          {/* Profile & Mobile Button */}
           <div className="flex items-center">
-            {/* Profile Dropdown */}
             <div className="relative ml-3">
               <div>
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
-                  onBlur={() => setTimeout(() => setProfileOpen(false), 200)} // Close on blur
+                  // Removed onBlur to prevent closing when clicking dropdown items
                   className="bg-gray-200 flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   <span className="sr-only">Open user menu</span>
-                  {/* Simple Profile Icon */}
-                  <svg className="h-8 w-8 text-gray-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path></svg>
+                  {/* --- DYNAMIC IMAGE --- */}
+                  {userImage ? (
+                    <img className="h-8 w-8 rounded-full object-cover" src={userImage} alt="" />
+                  ) : (
+                    <svg className="h-8 w-8 text-gray-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path></svg>
+                  )}
                 </button>
               </div>
-              {/* Dropdown Menu - Use <Link> or onClick */}
+              
               {profileOpen && (
-                <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5">
+                <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 z-50">
                   <Link to="/profile" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Your Profile</Link>
                   <Link to="/password" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Change Password</Link>
-                  <a href="#" onClick={(e) => { e.preventDefault(); onLogout(); setProfileOpen(false); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                  <button onClick={(e) => { e.preventDefault(); onLogout(); setProfileOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</button>
                 </div>
               )}
             </div>
 
-            {/* Mobile menu button */}
+            {/* Mobile Button */}
             <div className="ml-2 -mr-2 flex items-center md:hidden">
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-              >
-                <span className="sr-only">Open main menu</span>
-                {/* Icon for menu (hamburger) */}
+              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
                 <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
@@ -116,19 +109,15 @@ const NavBar = ({ onLogout }) => {
         </div>
       </div>
 
-      {/* Mobile Menu Dropdown */}
+      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-gray-200">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             {scrollLinks.map(item => (
-              <button key={item.id} onClick={() => scrollTo(item.id)} className="text-gray-700 hover:bg-gray-50 w-full text-left block px-3 py-2 rounded-md text-base font-medium">
-                {item.name}
-              </button>
+              <button key={item.id} onClick={() => scrollTo(item.id)} className="text-gray-700 hover:bg-gray-50 w-full text-left block px-3 py-2 rounded-md text-base font-medium">{item.name}</button>
             ))}
             {pageLinks.map(item => (
-              <Link key={item.path} to={item.path} onClick={() => setMobileMenuOpen(false)} className="text-gray-700 hover:bg-gray-50 w-full text-left block px-3 py-2 rounded-md text-base font-medium">
-                {item.name}
-              </Link>
+              <Link key={item.path} to={item.path} onClick={() => setMobileMenuOpen(false)} className="text-gray-700 hover:bg-gray-50 w-full text-left block px-3 py-2 rounded-md text-base font-medium">{item.name}</Link>
             ))}
           </div>
         </div>

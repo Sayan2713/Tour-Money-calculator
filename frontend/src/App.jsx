@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useEffect, useRef } from "react"; // <--- Added useEffect, useRef
 import { Routes, Route, Navigate } from "react-router-dom";
-import { useAuth } from "../src/context/AuthContext"; // <--- 1. TYPO FIXED
+import { useAuth } from "../src/context/AuthContext";
 
 // Layout & Route Components
 import Layout from "./components/Layout";
@@ -25,10 +25,10 @@ export default function App() {
       {/* Login/Signup */}
       <Route
         path="/auth"
-        element={token ? <Navigate to="/" /> : <AuthScreen />}
+        element={token ? <RedirectHandler /> : <AuthScreen />}
       />
 
-      {/* Accept Invite - This must be BEFORE the catch-all route */}
+      {/* Accept Invite - Must be BEFORE catch-all */}
       <Route path="/accept-invite" element={<AcceptInvitePage />} />
 
 
@@ -43,9 +43,32 @@ export default function App() {
         </Route>
       </Route>
 
-      {/* --- Catch-All Route (MUST BE LAST) --- */}
+      {/* --- Catch-All Route --- */}
       <Route path="*" element={<Navigate to="/" />} />
       
     </Routes>
   );
+}
+
+// ##################################################################
+// #  HELPER COMPONENT: RedirectHandler
+// #  Fixes the "Strict Mode" double-delete bug
+// ##################################################################
+function RedirectHandler() {
+  // 1. Read the value ONE time and store it in a Reference (doesn't change on re-renders)
+  const redirectUrlRef = useRef(localStorage.getItem('postLoginRedirect'));
+
+  // 2. Use useEffect to clean up localStorage AFTER we have decided where to go
+  useEffect(() => {
+    if (redirectUrlRef.current) {
+      localStorage.removeItem('postLoginRedirect');
+    }
+  }, []);
+
+  // 3. Decide where to navigate based on the Ref value
+  if (redirectUrlRef.current) {
+    return <Navigate to={redirectUrlRef.current} replace />;
+  }
+  
+  return <Navigate to="/" replace />;
 }

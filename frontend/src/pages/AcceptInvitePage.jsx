@@ -9,11 +9,18 @@ const AcceptInvitePage = () => {
   const { token: authToken } = useAuth();
   const navigate = useNavigate();
   
-  const [status, setStatus] = useState('idle'); // idle, loading, success, error
+  const [status, setStatus] = useState('idle');
   const [msg, setMsg] = useState('');
 
   // If the link is broken (no token), go home
   if (!token) return <Navigate to="/" />;
+
+  // --- NEW: Logic to remember the invite link ---
+  const handleLoginRedirect = () => {
+    // Save the current URL (invite link) so we can come back after login
+    localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
+    navigate('/auth');
+  };
 
   // If user is NOT logged in, show a message
   if (!authToken) {
@@ -23,7 +30,7 @@ const AcceptInvitePage = () => {
           <h2 className="text-2xl font-bold text-blue-600 mb-4">Trip Invitation</h2>
           <p className="text-gray-700 mb-6">You have been invited to a trip! Please log in or sign up to accept.</p>
           <button 
-            onClick={() => navigate('/auth')}
+            onClick={handleLoginRedirect} // <--- Updated Handler
             className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded"
           >
             Go to Login

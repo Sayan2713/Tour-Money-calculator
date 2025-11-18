@@ -11,7 +11,11 @@ const uri = process.env.MONGODB_URI;
 
 // --- Middleware ---
 app.use(cors());
-app.use(express.json());
+
+// 🔧 FIX: Increase payload size limit to 50MB to allow image uploads
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
 
 // --- Basic Test Route (Doesn't use DB) ---
 app.get('/', (req, res) => {
@@ -19,7 +23,6 @@ app.get('/', (req, res) => {
 });
 
 // --- Start Server Function ---
-// Ensures MongoDB connection is established before starting Express listener
 const startServer = async () => {
   try {
     // 1. Wait for the database connection
@@ -31,14 +34,16 @@ const startServer = async () => {
     const tripsRouter = require('./routes/trips');
     const participantsRouter = require('./routes/participants');
     const expensesRouter = require('./routes/expenses');
-    const authRouter = require('./routes/auth'); // <-- NEW: Import Auth Router
+    const authRouter = require('./routes/auth');
     const invitationsRouter = require('./routes/invitations');
-   
+    const usersRouter = require('./routes/users');
+
     app.use('/invitations', invitationsRouter);
-    app.use('/auth', authRouter); // <-- NEW: Use Auth Routes under /auth
+    app.use('/auth', authRouter);
     app.use('/trips', tripsRouter);
     app.use('/participants', participantsRouter);
     app.use('/expenses', expensesRouter);
+    app.use('/users', usersRouter);
 
     // 3. Now, start the Express server
     app.listen(PORT, () => {
