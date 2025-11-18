@@ -8,9 +8,7 @@ const Invitation = require("../models/Invitation");
 
 // --- EMAIL CONFIGURATION ---
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,              // <--- Change to 587
-  secure: false,          // <--- Must be false for port 587
+  service: 'gmail', // Let Nodemailer handle the ports automatically
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS

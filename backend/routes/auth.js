@@ -11,9 +11,7 @@ const saltRounds = 10;
 
 // --- EMAIL CONFIGURATION ---
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com', // Explicitly set the host
-  port: 587,              // Use Secure SSL port
-  secure: false,           // Must be true for port 465
+  service: 'gmail', // Let Nodemailer handle the ports automatically
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
