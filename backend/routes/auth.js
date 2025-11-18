@@ -66,7 +66,7 @@ router.route("/signup").post(async (req, res) => {
     // DO NOT log the password for security
     // 5. Send OTP Email
     await transporter.sendMail({
-      from: '"TripSplit Security" <video.editor0713@gmail.com>',
+      from: '"TripSplit Security" <no-reply@mg.brevo.com>',
 
       to: email,
       subject: "Verify Your Account - TripSplit",
@@ -233,7 +233,7 @@ router.post("/forgot-init", async (req, res) => {
     await user.save();
 
     await transporter.sendMail({
-      from: '"TripSplit Security" <video.editor0713@gmail.com>',
+      from: '"TripSplit Security" <no-reply@mg.brevo.com>',
 
       to: email,
       subject: "Password Reset OTP",
