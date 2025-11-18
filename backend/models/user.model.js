@@ -14,13 +14,25 @@ const userSchema = new Schema({
     type: String,
     required: true,
   },
-  // --- NEW PROFILE FIELDS ---
   name: { type: String, trim: true, default: '' },
   gender: { type: String, enum: ['Male', 'Female', 'Other', ''], default: '' },
   dob: { type: Date },
   mobile: { type: String, trim: true, default: '' },
-  // We will store the image as a Base64 string for simplicity
-  profilePicture: { type: String, default: '' } 
+  profilePicture: { type: String, default: '' },
+
+  // --- NEW AUTH FIELDS ---
+  isVerified: { 
+    type: Boolean, 
+    default: false 
+  },
+  otp: { 
+    type: String, // We will store the 6-digit code here
+    default: null 
+  },
+  otpExpires: { 
+    type: Date, 
+    default: null 
+  }
 }, {
   timestamps: true,
 });

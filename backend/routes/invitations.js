@@ -10,8 +10,8 @@ const Invitation = require("../models/Invitation");
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: "video.editor0713@gmail.com", // <--- PUT YOUR GMAIL HERE
-    pass: "cxnz vlhk uvot ybir", // <--- PUT YOUR 16-CHAR APP PASSWORD HERE
+    user: process.env.EMAIL_USER, 
+    pass: process.env.EMAIL_PASS
   },
 });
 

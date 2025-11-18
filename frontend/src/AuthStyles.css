@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+/* Shared Background & Font */
+.auth-container {
+  font-family: 'Poppins', sans-serif;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(140deg, #d0f1ff, #a3d8ff, #a3ffd1, #ffe7b1, #ffb56b);
+  background-size: 420% 420%;
+  animation: bgShift 60s infinite ease-in-out;
+}
+
+@keyframes bgShift {
+  0% { background-position: 0% 50% }
+  50% { background-position: 100% 50% }
+  100% { background-position: 0% 50% }
+}
+
+/* Glass Card */
+.glass-card {
+  width: 480px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(16px) saturate(130%);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  position: relative;
+}
+
+/* The Elevator/Slider Inner */
+.inner-slider {
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: top 1s cubic-bezier(.25, .8, .25, 1);
+}
+
+/* Common Elements */
+.auth-h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #053242;
+  margin-bottom: 18px;
+}
+
+.input-group {
+  position: relative;
+  margin: 14px 0;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 14px 46px 14px 14px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(8px);
+  color: #03364a;
+  font-size: 15px;
+  transition: .25s;
+}
+
+.auth-input:focus {
+  border-color: #7dd3fc;
+  background: rgba(255, 255, 255, 0.68);
+  outline: none;
+}
+
+.eye-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+.eye-btn:hover { opacity: 1; }
+
+/* Main Action Button (Teal) */
+.auth-btn {
+  width: 100%;
+  margin-top: 14px;
+  padding: 14px;
+  background: #006b74;
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.1s ease;
+}
+.auth-btn:hover { background: #00555d; }
+.auth-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.auth-btn:active { transform: scale(0.98); }
+
+/* Google Button - Matched Style */
+.google-btn {
+  background: white;
+  color: #444;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  /* Add same border/shadow as inputs to match 'Page Style' */
+  border: 1px solid rgba(255, 255, 255, 0.6); 
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+.google-btn:hover {
+  background: #f8f9fa;
+}
+.google-btn img { width: 20px; height: 20px; }
+
+.link-text {
+  margin-top: 16px;
+  color: #06404c;
+}
+.link-span {
+  text-decoration: underline;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.error-msg {
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 12px;
+  padding: 8px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
