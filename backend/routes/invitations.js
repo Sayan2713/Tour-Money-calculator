@@ -8,11 +8,16 @@ const Invitation = require("../models/Invitation");
 
 // --- EMAIL CONFIGURATION ---
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // Let Nodemailer handle the ports automatically
+  service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
-  }
+  },
+  // 🔧 FIX: Force IPv4 to prevent connection timeouts on cloud servers
+  family: 4, 
+  // 🔧 DEBUG: Add logging so we can see details in Render logs if it fails
+  logger: true,
+  debug: true
 });
 
 // --- ROUTE: Send an Invitation ---
