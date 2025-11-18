@@ -13,11 +13,12 @@ const saltRounds = 10;
 const transporter = nodemailer.createTransport({
   host: "smtp-relay.brevo.com",
   port: 465,
-  secure: true, // SSL
+  secure: true,
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  }
+    pass: process.env.EMAIL_PASS
+  },
+  connectionTimeout: 15000 // 15 sec
 });
 
 // ###################################################

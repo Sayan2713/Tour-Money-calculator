@@ -14,7 +14,8 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
-  }
+  },
+  connectionTimeout: 15000 
 });
 
 // --- ROUTE: Send an Invitation ---
