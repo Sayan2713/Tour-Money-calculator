@@ -79,7 +79,7 @@ const ProfilePage = () => {
         .then(res => {
             setMsg({ type: 'success', text: 'Profile updated successfully!' });
             // Optional: Force reload page to update Navbar image if changed
-             window.location.reload(); 
+            
         })
         .catch(err => setMsg({ type: 'error', text: 'Failed to update profile.' }));
   };
