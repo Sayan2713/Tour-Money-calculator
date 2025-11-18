@@ -9,15 +9,15 @@ let User = require("../models/user.model");
 const jwtSecret = process.env.JWT_SECRET;
 const saltRounds = 10;
 
-// --- EMAIL CONFIGURATION (Brevo) ---
 const transporter = nodemailer.createTransport({
-  host: 'smtp-relay.brevo.com', // <--- Brevo's Server
+  host: 'smtp-relay.brevo.com',
   port: 587,
-  secure: false, 
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
-  }
+  },
+  tls: { rejectUnauthorized: false }   // <--- add this line
 });
 
 // ############################################################################
@@ -66,7 +66,8 @@ router.route("/signup").post(async (req, res) => {
     // DO NOT log the password for security
     // 5. Send OTP Email
     await transporter.sendMail({
-      from: '"TripSplit Security" <' + process.env.EMAIL_USER + ">",
+      from: '"TripSplit Security" <video.editor0713@gmail.com>',
+
       to: email,
       subject: "Verify Your Account - TripSplit",
       html: `
@@ -232,7 +233,8 @@ router.post("/forgot-init", async (req, res) => {
     await user.save();
 
     await transporter.sendMail({
-      from: '"TripSplit Security" <' + process.env.EMAIL_USER + ">",
+      from: '"TripSplit Security" <video.editor0713@gmail.com>',
+
       to: email,
       subject: "Password Reset OTP",
       html: `<h3>Password Reset</h3><p>Your OTP is:</p><h1>${otp}</h1>`,
