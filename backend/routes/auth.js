@@ -2,24 +2,20 @@ const router = require("express").Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const nodemailer = require("nodemailer");
 const axios = require("axios");
 let User = require("../models/user.model");
 
+const Brevo = require("@getbrevo/brevo");
+
+// ------------------ BREVO API CONFIG ------------------
+const brevoClient = new Brevo.TransactionalEmailsApi();
+brevoClient.setApiKey(
+  Brevo.TransactionalEmailsApiApiKeys.apiKey,
+  process.env.BREVO_API_KEY
+);
+
 const jwtSecret = process.env.JWT_SECRET;
 const saltRounds = 10;
-
-// ------------------ EMAIL CONFIG ------------------
-const transporter = nodemailer.createTransport({
-  host: "smtp-relay.brevo.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  connectionTimeout: 15000 // 15 sec
-});
 
 // ###################################################
 // 1. SIGNUP — SEND OTP
@@ -29,6 +25,7 @@ router.post("/signup", async (req, res) => {
     const { email, password, name, mobile, dob } = req.body;
 
     let user = await User.findOne({ email });
+
     if (user) {
       if (user.isVerified)
         return res.status(400).json({ msg: "Email already registered." });
@@ -56,24 +53,23 @@ router.post("/signup", async (req, res) => {
 
     console.log("Attempting to send email to:", email);
 
-    // ---------------- REAL MAIL SEND + REAL ERRORS ----------------
+    // ---------------- SEND EMAIL VIA BREVO API ----------------
     try {
-      const info = await transporter.sendMail({
-        from: `"TripSplit Security" <${process.env.EMAIL_USER}>`,
-        to: email,
+      await brevoClient.sendTransacEmail({
+        sender: { email: "noreply@tripsplit.in", name: "TripSplit Security" },
+        to: [{ email }],
         subject: "Verify Your Account - TripSplit",
-        html: `
+        htmlContent: `
           <h3>Welcome to TripSplit!</h3>
           <p>Your Verification Code:</p>
-          <h1>${otp}</h1>
+          <h1 style="color:#006b74; letter-spacing:5px;">${otp}</h1>
           <p>This code expires in 10 minutes.</p>
         `,
       });
 
-      console.log("✔ REAL EMAIL SENT:", info.messageId);
-
+      console.log("✔ BREVO EMAIL SENT!");
     } catch (mailErr) {
-      console.error("❌ EMAIL SEND ERROR:", mailErr);
+      console.error("❌ BREVO SEND ERROR:", mailErr);
       return res.status(500).json({ msg: "Email not sent", error: mailErr.message });
     }
 
@@ -103,7 +99,12 @@ router.post("/signup-verify", async (req, res) => {
     await user.save();
 
     const token = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: "1d" });
-    return res.json({ message: "Registration successful!", token, userId: user._id });
+
+    return res.json({
+      message: "Registration successful!",
+      token,
+      userId: user._id,
+    });
 
   } catch (err) {
     return res.status(500).json({ msg: err.message });
@@ -124,10 +125,16 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ msg: "Please verify your email first." });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ msg: "Invalid email or password." });
+    if (!isMatch)
+      return res.status(401).json({ msg: "Invalid email or password." });
 
     const token = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: "1d" });
-    return res.json({ message: "Login successful!", token, userId: user._id });
+
+    return res.json({
+      message: "Login successful!",
+      token,
+      userId: user._id,
+    });
 
   } catch (err) {
     return res.status(500).json({ msg: err.message });
