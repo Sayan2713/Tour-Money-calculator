@@ -2,35 +2,52 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 
-// Loads MONGODB_URI from the .env file
+// Loads MONGODB_URI, EMAIL_USER, EMAIL_PASS, JWT_SECRET from .env (Render env)
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const uri = process.env.MONGODB_URI;
 
-// --- Middleware ---
-app.use(cors());
+// -----------------------------------------------------
+// ⭐ CORRECT CORS FIX FOR RENDER FRONTEND + BACKEND
+// -----------------------------------------------------
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://tour-money-calculator-hcq4.onrender.com"   // your frontend URL
+];
 
-// 🔧 FIX: Increase payload size limit to 50MB to allow image uploads
+app.use(cors({
+  origin: allowedOrigins,
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,
+}));
+
+// Allow preflight for all routes
+app.options("*", cors());
+
+// -----------------------------------------------------
+// Body parser
+// -----------------------------------------------------
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-
-// --- Basic Test Route (Doesn't use DB) ---
+// -----------------------------------------------------
+// Test Route
+// -----------------------------------------------------
 app.get('/', (req, res) => {
   res.json({ message: "Hello from the TripSplit backend!" });
 });
 
-// --- Start Server Function ---
+// -----------------------------------------------------
+// Start Server Function
+// -----------------------------------------------------
 const startServer = async () => {
   try {
-    // 1. Wait for the database connection
     await mongoose.connect(uri);
-    
     console.log("MongoDB database connection established successfully!");
 
-    // 2. Import and use routes *ONLY AFTER* the connection is open
+    // Load routes AFTER DB is ready
     const tripsRouter = require('./routes/trips');
     const participantsRouter = require('./routes/participants');
     const expensesRouter = require('./routes/expenses');
@@ -45,7 +62,7 @@ const startServer = async () => {
     app.use('/expenses', expensesRouter);
     app.use('/users', usersRouter);
 
-    // 3. Now, start the Express server
+    // Start server
     app.listen(PORT, () => {
       console.log(`Backend server is running on http://localhost:${PORT}`);
     });
