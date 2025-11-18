@@ -8,12 +8,12 @@ const Invitation = require("../models/Invitation");
 
 // --- EMAIL CONFIGURATION (Brevo) ---
 const transporter = nodemailer.createTransport({
-  host: 'smtp-relay.brevo.com', // <--- Brevo's Server
-  port: 587,
-  secure: false, 
+  host: "smtp-relay.brevo.com",
+  port: 465,
+  secure: true, // SSL
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    pass: process.env.EMAIL_PASS,
   }
 });
 
