@@ -11,14 +11,17 @@ const saltRounds = 10;
 
 // --- EMAIL CONFIGURATION ---
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // Must be false for port 587
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   },
-  // 🔧 FIX: Force IPv4 to prevent connection timeouts on cloud servers
+  // ⚡ CRITICAL FIX: Force IPv4
+  // Render defaults to IPv6, which Gmail often blocks, causing "Connection Timeout"
   family: 4, 
-  // 🔧 DEBUG: Add logging so we can see details in Render logs if it fails
+  // Enable logging to see details if it fails
   logger: true,
   debug: true
 });
