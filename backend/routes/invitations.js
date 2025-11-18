@@ -6,21 +6,15 @@ const Trip = require("../models/trip.model");
 const User = require("../models/user.model");
 const Invitation = require("../models/Invitation");
 
-// --- EMAIL CONFIGURATION ---
+// --- EMAIL CONFIGURATION (Brevo) ---
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
+  host: 'smtp-relay.brevo.com', // <--- Brevo's Server
   port: 587,
-  secure: false, // Must be false for port 587
+  secure: false, 
   auth: {
-    user: 'video.editor0713@gmail.com',
-    pass: 'idff mczf yble awya'
-  },
-  // ⚡ CRITICAL FIX: Force IPv4
-  // Render defaults to IPv6, which Gmail often blocks, causing "Connection Timeout"
-  family: 4, 
-  // Enable logging to see details if it fails
-  logger: true,
-  debug: true
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
 });
 
 // --- ROUTE: Send an Invitation ---
