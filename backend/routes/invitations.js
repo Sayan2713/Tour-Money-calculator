@@ -66,7 +66,7 @@ router.post("/send", auth, async (req, res) => {
 
     // 6. Send the Email
     // This link points to your FRONTEND accept page
-    const inviteLink = `http://localhost:5173/accept-invite?token=${token}`;
+    const inviteLink = `https://tour-money-calculator-hcq4.onrender.com/accept-invite?token=${token}`;
 
     const mailOptions = {
       from: "TripSplit App",
