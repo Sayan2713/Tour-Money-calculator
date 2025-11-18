@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google'; // <--- NEW IMPORT
 import App from './App.jsx';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext.jsx';
 import './index.css'; 
 
 // REPLACE THIS STRING WITH YOUR ACTUAL GOOGLE CLIENT ID

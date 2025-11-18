@@ -63,7 +63,6 @@ const Footer = () => {
               className="text-sm mt-2 text-blue-400 hover:text-blue-300"
             >
               Contact Me
-              
             </Link>
           </p>
         </div>
@@ -95,7 +94,7 @@ const Footer = () => {
           </p>
         </div>
         <div>
-          <p className="text-sm mt-4 fixed bottom-2 left-1/2 transform -translate-x-1/2 text-center">
+          <p className="text-sm text-center mb-4">
             © 2025 Sayan Mondal. All rights reserved.
           </p>
         </div>
