@@ -71,7 +71,8 @@ router.post("/send", auth, async (req, res) => {
     const inviteLink = `https://tour-money-calculator-hcq4.onrender.com/accept-invite?token=${token}`;
 
     const mailOptions = {
-      from: '"TripSplit Security" <no-reply@mg.brevo.com>',
+      from: '"TripSplit Security" <9be925001@smtp-brevo.com>',
+
       to: invitedEmail,
       subject: `You're invited to join the trip: ${trip.name}`,
       html: `
