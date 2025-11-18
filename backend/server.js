@@ -23,9 +23,6 @@ app.use(cors({
   credentials: true,
 }));
 
-// Allow preflight for all routes
-app.options("*", cors());
-
 // -----------------------------------------------------
 // Body parser
 // -----------------------------------------------------
