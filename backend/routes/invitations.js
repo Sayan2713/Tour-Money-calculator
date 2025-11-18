@@ -12,8 +12,8 @@ const transporter = nodemailer.createTransport({
   port: 587,
   secure: false, // Must be false for port 587
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    user: 'video.editor0713@gmail.com',
+    pass: 'idff mczf yble awya'
   },
   // ⚡ CRITICAL FIX: Force IPv4
   // Render defaults to IPv6, which Gmail often blocks, causing "Connection Timeout"
