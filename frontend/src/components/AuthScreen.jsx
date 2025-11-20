@@ -45,7 +45,8 @@ const AuthScreen = () => {
     setLoading(true);
     if(formData.password !== formData.confirmPassword) { setError("Passwords do not match"); setLoading(false); return; }
     try {
-      await axios.post(`${API_BASE_URL}/auth/signup`, formData);
+      const response = await axios.post(`${API_BASE_URL}/auth/signup`, formData);
+      console.log("Signup Response data : ",response.data);
       setIsVerifying(true); setError('');
     } catch (err) { setError(err.response?.data?.msg || 'Signup failed'); }
     setLoading(false);
@@ -57,6 +58,7 @@ const AuthScreen = () => {
     setLoading(true);
     try {
        const response = await axios.post(`${API_BASE_URL}/auth/signup-verify`, { email: formData.email, otp: otp });
+       console.log("Verification Response data : ",response.data);
        login(response.data.token);
     } catch (err) { setError(err.response?.data?.msg || 'Verification failed'); }
     setLoading(false);
@@ -68,6 +70,7 @@ const AuthScreen = () => {
     setLoading(true);
     try {
       const response = await axios.post(`${API_BASE_URL}/auth/login`, { email: formData.email, password: formData.password });
+      console.log("Response data : ",response.data);
       login(response.data.token);
     } catch (err) { setError(err.response?.data?.msg || 'Login failed'); }
     setLoading(false);
