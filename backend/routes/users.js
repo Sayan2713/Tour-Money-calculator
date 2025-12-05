@@ -1,9 +1,9 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const auth = require('../middleware/auth');
-const User = require('../models/user.model'); // Ensure this matches your filename
+const User = require('../models/user.model'); 
 const Trip = require('../models/trip.model');
-const Invitation = require('../models/Invitation'); // Ensure filename matches
+const Invitation = require('../models/Invitation'); 
 const Participant = require('../models/participant.model');
 const Expense = require('../models/expense.model');
 
