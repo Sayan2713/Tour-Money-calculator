@@ -1,3 +1,4 @@
+
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -14,13 +15,17 @@ const saltRounds = 10;
 // Ensure your .env file has:
 // EMAIL_USER=your_gmail_address
 // EMAIL_PASS=your_16_char_app_password
+// --- EMAIL CONFIGURATION (Outlook) ---
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true, // true for 465, false for other ports
+  host: "smtp.office365.com",
+  port: 587,
+  secure: false, // STARTTLS
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    user: process.env.EMAIL_USER, // Your Outlook email
+    pass: process.env.EMAIL_PASS, // Your NEW App Password
+  },
+  tls: {
+    ciphers: 'SSLv3'
   }
 });
 
@@ -266,3 +271,6 @@ router.post('/forgot-reset', async (req, res) => {
 
 
 module.exports = router;
+
+
+
