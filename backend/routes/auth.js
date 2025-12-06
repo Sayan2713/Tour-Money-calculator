@@ -1,53 +1,39 @@
-
+// auth.js
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
 const axios = require('axios'); // Required for Google Login
-const nodemailer = require('nodemailer'); // Standard Nodemailer
+const sgMail = require('@sendgrid/mail'); // SendGrid mail
 let User = require('../models/user.model');
 
 const jwtSecret = process.env.JWT_SECRET;
-const saltRounds = 10;
+const saltRounds = process.env.SALT_ROUNDS ? parseInt(process.env.SALT_ROUNDS, 10) : 10;
 
-// --- EMAIL CONFIGURATION (Gmail SMTP) ---
-// This connects directly to Gmail servers.
-// Ensure your .env file has:
-// EMAIL_USER=your_gmail_address
-// EMAIL_PASS=your_16_char_app_password
-// --- EMAIL CONFIGURATION (Outlook) ---
-const transporter = nodemailer.createTransport({
-  host: "smtp.office365.com",
-  port: 587,
-  secure: false, // STARTTLS
-  auth: {
-    user: process.env.EMAIL_USER, // Your Outlook email
-    pass: process.env.EMAIL_PASS, // Your NEW App Password
-  },
-  tls: {
-    ciphers: 'SSLv3'
-  }
-});
+// --- SENDGRID CONFIG ---
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'no-reply@tripsplit.local';
 
-// Helper function to send email
+// Helper function to send email via SendGrid
 async function sendEmail(to, subject, htmlContent) {
   try {
-    const info = await transporter.sendMail({
-      from: '"TripSplit Security" <' + process.env.EMAIL_USER + '>',
-      to: to,
-      subject: subject,
+    const msg = {
+      to,
+      from: FROM_EMAIL,
+      subject,
       html: htmlContent
-    });
-    console.log("Email sent: %s", info.messageId);
-    return info;
+    };
+    const response = await sgMail.send(msg);
+    // sgMail.send returns an array of responses for each recipient in some versions
+    console.log('SendGrid response:', Array.isArray(response) ? response[0].statusCode : response.statusCode);
+    return response;
   } catch (error) {
-    console.error("Email Error:", error);
-    throw new Error("Email sending failed"); 
+    console.error('SendGrid Error:', error?.response?.body || error.message || error);
+    throw new Error('Email sending failed');
   }
 }
 
 /* -------------------------------------------------------------------------- */
-/* SIGNUP STEP 1                                 */
+/* SIGNUP STEP 1                                                               */
 /* -------------------------------------------------------------------------- */
 router.route('/signup').post(async (req, res) => {
   try {
@@ -80,7 +66,7 @@ router.route('/signup').post(async (req, res) => {
 
     await newUser.save();
 
-    // Send OTP via Gmail SMTP
+    // Send OTP via SendGrid
     await sendEmail(
       email,
       'Verify Your Account - TripSplit',
@@ -95,13 +81,13 @@ router.route('/signup').post(async (req, res) => {
     res.json({ msg: 'Verification code sent to email', email });
 
   } catch (err) {
-    console.error("Signup Error:", err);
+    console.error('Signup Error:', err);
     res.status(500).json({ msg: 'Error registering user: ' + err.message });
   }
 });
 
 /* -------------------------------------------------------------------------- */
-/* SIGNUP STEP 2 (Verify OTP)                          */
+/* SIGNUP STEP 2 (Verify OTP)                                                  */
 /* -------------------------------------------------------------------------- */
 router.route('/signup-verify').post(async (req, res) => {
   try {
@@ -133,7 +119,7 @@ router.route('/signup-verify').post(async (req, res) => {
 });
 
 /* -------------------------------------------------------------------------- */
-/* LOGIN                                    */
+/* LOGIN                                                                       */
 /* -------------------------------------------------------------------------- */
 router.route('/login').post(async (req, res) => {
   try {
@@ -159,25 +145,25 @@ router.route('/login').post(async (req, res) => {
 });
 
 /* -------------------------------------------------------------------------- */
-/* GOOGLE LOGIN (Restored)                            */
+/* GOOGLE LOGIN (Restored)                                                     */
 /* -------------------------------------------------------------------------- */
 router.post('/google', async (req, res) => {
   try {
     const { accessToken } = req.body;
 
     const googleRes = await axios.get(`https://www.googleapis.com/oauth2/v1/userinfo?access_token=${accessToken}`, {
-        headers: {
-            Authorization: `Bearer ${accessToken}`,
-            Accept: 'application/json'
-        }
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/json'
+      }
     });
 
     const { email, name, picture } = googleRes.data;
     let user = await User.findOne({ email });
 
     if (user) {
-        const token = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: '1d' });
-        return res.json({ message: 'Login successful!', token, userId: user._id });
+      const token = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: '1d' });
+      return res.json({ message: 'Login successful!', token, userId: user._id });
     }
 
     // Google users are auto-verified
@@ -185,11 +171,11 @@ router.post('/google', async (req, res) => {
     const hashedPassword = await bcrypt.hash(randomPassword, saltRounds);
 
     const newUser = new User({
-        email,
-        password: hashedPassword,
-        name,
-        profilePicture: picture,
-        isVerified: true 
+      email,
+      password: hashedPassword,
+      name,
+      profilePicture: picture,
+      isVerified: true
     });
 
     await newUser.save();
@@ -204,7 +190,7 @@ router.post('/google', async (req, res) => {
 });
 
 /* -------------------------------------------------------------------------- */
-/* FORGOT PASSWORD                                */
+/* FORGOT PASSWORD                                                             */
 /* -------------------------------------------------------------------------- */
 router.post('/forgot-init', async (req, res) => {
   const { email, dob } = req.body;
@@ -215,11 +201,11 @@ router.post('/forgot-init', async (req, res) => {
 
     // Handle string/date comparison carefully
     if (user.dob && dob) {
-        // Convert stored date to YYYY-MM-DD
-        const userDob = new Date(user.dob).toISOString().split('T')[0];
-        if (userDob !== dob) {
-            return res.status(400).json({ msg: "Date of Birth does not match." });
-        }
+      // Convert stored date to YYYY-MM-DD
+      const userDob = new Date(user.dob).toISOString().split('T')[0];
+      if (userDob !== dob) {
+        return res.status(400).json({ msg: "Date of Birth does not match." });
+      }
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -248,7 +234,7 @@ router.post('/forgot-verify', async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user || user.otp !== otp || user.otpExpires < Date.now()) {
-        return res.status(400).json({ msg: "Invalid OTP" });
+      return res.status(400).json({ msg: "Invalid OTP" });
     }
     res.json({ msg: "OTP Verified" });
   } catch (err) { res.status(500).json({ msg: err.message }); }
@@ -259,7 +245,7 @@ router.post('/forgot-reset', async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user || user.otp !== otp || user.otpExpires < Date.now()) {
-        return res.status(400).json({ msg: "Invalid Session" });
+      return res.status(400).json({ msg: "Invalid Session" });
     }
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
@@ -269,8 +255,4 @@ router.post('/forgot-reset', async (req, res) => {
   } catch (err) { res.status(500).json({ msg: err.message }); }
 });
 
-
 module.exports = router;
-
-
-
