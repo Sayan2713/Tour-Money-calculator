@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base URL for our backend
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'https://tripsplit-api.onrender.com';
 
 // --- Axios Global Setup ---
 const api = axios.create({
