@@ -6,7 +6,7 @@ const Trip = require("../models/trip.model");
 const User = require("../models/user.model");
 const Invitation = require("../models/Invitation");
 
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+const FRONTEND_URL = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
 const DEFAULT_FROM_NAME = process.env.EMAIL_FROM_NAME || "TripSplit App";
 
 // --- EMAIL SENDER: Try SendGrid, fallback to Nodemailer (Gmail) ---
@@ -33,7 +33,6 @@ try {
     auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
   });
 
-  // verify transporter on startup if possible
   transporter.verify((err, success) => {
     if (err) console.warn("Nodemailer verify failed:", err.message);
     else console.log("Nodemailer is ready to send messages");
@@ -53,6 +52,41 @@ try {
 
   console.log("SendGrid not configured — using Nodemailer fallback.");
 }
+
+/* -------------------------------------------------------------------------- */
+/* BACKEND FALLBACK PAGE: Serve a simple HTML page for direct clicks          */
+/* This prevents "Not Found" when frontend static hosting doesn't rewrite     */
+/* -------------------------------------------------------------------------- */
+router.get("/accept-invite", (req, res) => {
+  const token = req.query.token || "";
+  const frontendLogin = `${FRONTEND_URL}/auth?next=/accept-invite?token=${encodeURIComponent(token)}`;
+  const frontendAcceptHash = `${FRONTEND_URL}/#/accept-invite?token=${encodeURIComponent(token)}`;
+  const frontendAccept = `${FRONTEND_URL}/accept-invite?token=${encodeURIComponent(token)}`;
+
+  const html = `
+    <html>
+      <head><meta charset="utf-8"><title>Invitation - TripSplit</title></head>
+      <body style="font-family: Arial, Helvetica, sans-serif;line-height:1.6;max-width:700px;margin:4rem auto;padding:1rem;">
+        <h2>TripSplit Invitation</h2>
+        <p>To accept this invitation you need to be logged in.</p>
+        <p>
+          <a href="${frontendLogin}" style="display:inline-block;padding:10px 14px;background:#006b74;color:#fff;text-decoration:none;border-radius:6px;margin-right:10px;">
+            Login / Sign up
+          </a>
+          <a href="${frontendAccept}" style="display:inline-block;padding:8px 12px;border:1px solid #006b74;color:#006b74;text-decoration:none;border-radius:6px;margin-right:10px;">
+            Open Frontend (if your frontend supports deep links)
+          </a>
+          <a href="${frontendAcceptHash}" style="display:inline-block;padding:8px 12px;border:1px solid #006b74;color:#006b74;text-decoration:none;border-radius:6px;">
+            Open (Hash) — works without server rewrites
+          </a>
+        </p>
+        <p style="color:#666;font-size:0.9rem">If the login button doesn't redirect back automatically, copy/paste this token into the frontend:</p>
+        <pre style="background:#f7f7f7;padding:12px;border-radius:6px;overflow:auto;">${token}</pre>
+      </body>
+    </html>
+  `;
+  res.status(200).send(html);
+});
 
 /* -------------------------------------------------------------------------- */
 /* ROUTE: Send an Invitation                                                   */
@@ -98,8 +132,9 @@ router.post("/send", auth, async (req, res) => {
 
     await newInvitation.save();
 
-    // 6. Send the Email
-    const inviteLink = `${FRONTEND_URL.replace(/\/$/, "")}/accept-invite?token=${token}`;
+    // 6. Build invite links (both normal and hash fallback)
+    const inviteLink = `${FRONTEND_URL}/accept-invite?token=${token}`;
+    const inviteLinkHash = `${FRONTEND_URL}/#/accept-invite?token=${token}`;
 
     const html = `
       <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.4;color:#111">
@@ -110,8 +145,8 @@ router.post("/send", auth, async (req, res) => {
             Accept Invitation
           </a>
         </p>
-        <p style="font-size:0.9em;color:#555">Or copy-paste this link into your browser:</p>
-        <p style="font-size:0.9em;color:#006b74;word-break:break-all"><a href="${inviteLink}">${inviteLink}</a></p>
+        <p style="font-size:0.9em;color:#555">If that link shows a "Not Found" page, use this alternate link (works without server rewrites):</p>
+        <p style="font-size:0.9em;color:#006b74;word-break:break-all"><a href="${inviteLinkHash}">${inviteLinkHash}</a></p>
         <p style="font-size:0.85em;color:#666">If you don't have an account, you'll be asked to sign up first.</p>
       </div>
     `;

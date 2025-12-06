@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 
 const AcceptInvitePage = () => {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   let tokenFromUrl = searchParams.get('token');
   const { token: authToken } = useAuth();
   const navigate = useNavigate();
@@ -12,15 +13,27 @@ const AcceptInvitePage = () => {
   const [status, setStatus] = useState('idle'); // idle | loading | success | error
   const [msg, setMsg] = useState('');
 
-  // If no token in URL, try to read one saved from pre-login redirect
+  // If no token in query, also try to get it from hash (for HashRouter link)
   useEffect(() => {
     if (!tokenFromUrl) {
+      // hash might be like "#/accept-invite?token=xxxx"
+      const hash = location.hash || window.location.hash || '';
+      if (hash.includes('?')) {
+        const maybeQuery = hash.split('?')[1] || '';
+        const params = new URLSearchParams(maybeQuery);
+        tokenFromUrl = params.get('token');
+      }
+    }
+
+    // Also try any saved postLoginRedirect
+    if (!tokenFromUrl) {
       const saved = localStorage.getItem('postLoginRedirect') || '';
-      if (saved) {
+      if (saved && saved.includes('?')) {
         const params = new URLSearchParams(saved.split('?')[1] || '');
         tokenFromUrl = params.get('token');
       }
     }
+    // We don't set state here because we will rely on tokenFromUrl variable for checks below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -29,7 +42,7 @@ const AcceptInvitePage = () => {
 
   // Save invite link before redirecting to login so we can come back
   const handleLoginRedirect = () => {
-    localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search);
+    localStorage.setItem('postLoginRedirect', window.location.pathname + window.location.search + window.location.hash);
     navigate('/auth'); // adjust if your login route differs
   };
 
@@ -51,15 +64,15 @@ const AcceptInvitePage = () => {
     );
   }
 
-  // If user just returned from login, try to remove saved redirect
+  // After login: if we were redirected from saved redirect, ensure token is present in URL
   useEffect(() => {
     const saved = localStorage.getItem('postLoginRedirect');
     if (saved) {
-      // if the saved redirect contains a token and current URL does not, redirect to it
       try {
         const savedParams = new URLSearchParams(saved.split('?')[1] || '');
         const savedToken = savedParams.get('token');
-        if (savedToken && !new URLSearchParams(window.location.search).get('token')) {
+        const currentToken = new URLSearchParams(window.location.search).get('token') || (window.location.hash.includes('?') ? new URLSearchParams(window.location.hash.split('?')[1]).get('token') : null);
+        if (savedToken && !currentToken) {
           localStorage.removeItem('postLoginRedirect');
           navigate(saved);
           return;
@@ -77,8 +90,8 @@ const AcceptInvitePage = () => {
     setStatus('loading');
     setMsg('');
     try {
-      // Try common endpoint names: /invitations/accept then fallback to /invitation/accept
-      const pathsToTry = ['/invitations/accept', '/invitation/accept', '/accept-invite'];
+      // Try the accept endpoint paths commonly used
+      const pathsToTry = ['/invitations/accept', '/invitation/accept', '/accept', '/invitation/accept', '/invitation/accept'];
       let response = null;
       let lastError = null;
 
