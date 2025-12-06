@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext';
 
 // ##################################################################
 // #  HELPER COMPONENT: ExpenseRow 
-// #  (Moved OUTSIDE the main component to fix the input focus bug)
 // ##################################################################
 const ExpenseRow = ({ 
   expense, 
@@ -20,7 +19,6 @@ const ExpenseRow = ({
 }) => {
   const isEditing = editingExpenseId === expense._id;
 
-  // Helper to render checkboxes inside the row during edit
   const renderCheckboxes = () => (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-2 border rounded bg-gray-50 max-h-24 overflow-y-auto">
         {participants.map(p => (
@@ -91,7 +89,8 @@ const ExpenseRow = ({
               {expense.title}
               <div className="text-xs text-blue-500">{expense.category}</div>
           </td>
-          <td className="px-4 py-3 text-sm text-gray-700 font-medium text-right">${expense.amount.toFixed(2)}</td>
+          {/* CHANGED: $ to ₹ */}
+          <td className="px-4 py-3 text-sm text-gray-700 font-medium text-right">₹{expense.amount.toFixed(2)}</td>
           <td className="px-4 py-3 text-sm text-gray-700">{expense.payer}</td>
           <td className="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" title={expense.sharedBy.join(', ')}>{expense.sharedBy.join(', ')}</td>
           <td className="px-4 py-3 text-center space-x-2">
@@ -124,15 +123,13 @@ export default function HomePage() {
     title: '', amount: '', category: 'Food', payer: '', sharedBy: []
   });
 
-  // Invitation State
+  // Invite State
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteStatus, setInviteStatus] = useState('idle');
   const [inviteMsg, setInviteMsg] = useState('');
 
   const [loadingTrips, setLoadingTrips] = useState(true);
-  const [loadingParticipants, setLoadingParticipants] = useState(false);
-  const [loadingExpenses, setLoadingExpenses] = useState(false);
   const [error, setError] = useState(null);
 
   // --- Utility: Alert Helper ---
@@ -147,12 +144,10 @@ export default function HomePage() {
   }, []);
 
   // --- 2. AUTO-REFRESH (POLLING) ---
-  // Updates data every 5 seconds if a trip is selected
   useEffect(() => {
     if (!selectedTrip) return;
 
     const intervalId = setInterval(() => {
-      // Silent refresh (no loading spinners)
       api.get(`/participants/${selectedTrip._id}`).then(res => setParticipants(res.data)).catch(() => {});
       api.get(`/expenses/${selectedTrip._id}`).then(res => setExpenses(res.data)).catch(() => {});
     }, 5000); 
@@ -160,14 +155,10 @@ export default function HomePage() {
     return () => clearInterval(intervalId); 
   }, [selectedTrip]);
 
-  // --- 3. FETCH DATA ON TRIP CHANGE + PERSISTENCE ---
+  // --- 3. FETCH DATA ON TRIP CHANGE ---
   useEffect(() => {
     if (selectedTrip) {
-      // Save ID to localStorage
       localStorage.setItem('lastSelectedTripId', selectedTrip._id);
-
-      setLoadingParticipants(true);
-      setLoadingExpenses(true);
       fetchParticipants(selectedTrip._id);
       fetchExpenses(selectedTrip._id);
     } else {
@@ -176,7 +167,6 @@ export default function HomePage() {
     }
   }, [selectedTrip]);
 
-  // Sync sharedBy default value with participants
   useEffect(() => {
     if (!editingExpenseId) {
       setNewExpense(prev => ({
@@ -194,14 +184,12 @@ export default function HomePage() {
       .then(response => {
         setTrips(response.data);
         
-        // RECOVER LAST SESSION
         const lastId = localStorage.getItem('lastSelectedTripId');
         const foundTrip = response.data.find(t => t._id === lastId);
 
         if (foundTrip) {
           setSelectedTrip(foundTrip);
         } else if (response.data.length > 0) {
-          // If no memory, select first trip
           setSelectedTrip(response.data[0]);
         }
         setLoadingTrips(false);
@@ -215,26 +203,14 @@ export default function HomePage() {
 
   const fetchParticipants = (tripId) => {
     api.get(`/participants/${tripId}`)
-      .then(response => {
-        setParticipants(response.data);
-        setLoadingParticipants(false);
-      })
-      .catch(() => {
-        showAlert('Error fetching participants.', 'warning');
-        setLoadingParticipants(false);
-      });
+      .then(response => setParticipants(response.data))
+      .catch(() => showAlert('Error fetching participants.', 'warning'));
   };
 
   const fetchExpenses = (tripId) => {
     api.get(`/expenses/${tripId}`)
-      .then(response => {
-        setExpenses(response.data);
-        setLoadingExpenses(false);
-      })
-      .catch(() => {
-        showAlert('Error fetching expenses.', 'warning');
-        setLoadingExpenses(false);
-      });
+      .then(response => setExpenses(response.data))
+      .catch(() => showAlert('Error fetching expenses.', 'warning'));
   };
 
   // --- CRUD Handlers ---
@@ -255,7 +231,7 @@ export default function HomePage() {
     api.delete(`/trips/delete/${tripId}`)
         .then(() => {
             showAlert('Trip deleted!', 'success');
-            localStorage.removeItem('lastSelectedTripId'); // Clear memory
+            localStorage.removeItem('lastSelectedTripId');
             setSelectedTrip(null);
             fetchTrips(); 
         })
@@ -324,7 +300,7 @@ export default function HomePage() {
       .catch(err => showAlert(err.response?.data?.Error || 'Error', 'error'));
   };
 
-  // ... Edit Handlers (Passed to ExpenseRow) ...
+  // ... Edit Handlers ...
   const handleEditExpense = (expense) => {
     setEditingExpenseId(expense._id);
     setEditedExpense({
@@ -511,7 +487,8 @@ export default function HomePage() {
               <h2 className="text-xl font-bold mb-4 border-b pb-2">3. Add Expense</h2>
               <form onSubmit={handleAddExpense} className="space-y-3">
                   <input placeholder="Title" value={newExpense.title} onChange={e => setNewExpense({...newExpense, title: e.target.value})} className="w-full p-2 border rounded" />
-                  <input type="number" placeholder="Amount" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount: e.target.value})} className="w-full p-2 border rounded" />
+                  {/* CHANGED: $ to ₹ */}
+                  <input type="number" placeholder="Amount (₹)" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount: e.target.value})} className="w-full p-2 border rounded" />
                   <div className="flex gap-2">
                       <select value={newExpense.category} onChange={e => setNewExpense({...newExpense, category: e.target.value})} className="flex-1 p-2 border rounded bg-white">
                           <option>Food</option><option>Transport</option><option>Lodging</option><option>Misc</option>
@@ -538,15 +515,18 @@ export default function HomePage() {
             <section className={`bg-white rounded-lg shadow p-6 sticky top-20 ${!selectedTrip ? 'opacity-50' : ''}`}>
                 <h2 className="text-xl font-bold mb-4 border-b pb-2">4. Settlement</h2>
                 <div className="grid grid-cols-2 gap-4 mb-4 text-center">
-                    <div className="bg-blue-50 p-2 rounded"><div className="text-gray-600 text-xs">Total</div><div className="text-xl font-bold text-blue-800">${settlement.totalSpent.toFixed(2)}</div></div>
-                    <div className="bg-purple-50 p-2 rounded"><div className="text-gray-600 text-xs">Per Person</div><div className="text-xl font-bold text-purple-800">${participants.length ? (settlement.totalSpent/participants.length).toFixed(2) : 0}</div></div>
+                    {/* CHANGED: $ to ₹ */}
+                    <div className="bg-blue-50 p-2 rounded"><div className="text-gray-600 text-xs">Total</div><div className="text-xl font-bold text-blue-800">₹{settlement.totalSpent.toFixed(2)}</div></div>
+                    {/* CHANGED: $ to ₹ */}
+                    <div className="bg-purple-50 p-2 rounded"><div className="text-gray-600 text-xs">Per Person</div><div className="text-xl font-bold text-purple-800">₹{participants.length ? (settlement.totalSpent/participants.length).toFixed(2) : 0}</div></div>
                 </div>
                 <div className="space-y-2 mb-6">
                     {!settlement.netPayments.length && <div className="text-green-600 font-medium text-center">All Settled! 🎉</div>}
                     {settlement.netPayments.map((p, i) => (
                         <div key={i} className="flex justify-between bg-red-50 p-2 rounded text-sm">
                             <span>{p.from} <span className="text-red-500 font-bold">→</span> {p.to}</span>
-                            <span className="font-bold text-red-800">${p.amount.toFixed(2)}</span>
+                            {/* CHANGED: $ to ₹ */}
+                            <span className="font-bold text-red-800">₹{p.amount.toFixed(2)}</span>
                         </div>
                     ))}
                 </div>
@@ -557,7 +537,8 @@ export default function HomePage() {
                             {settlement.balances.map(b => (
                                 <tr key={b.name} className="border-t">
                                     <td className="p-2">{b.name}</td>
-                                    <td className={`p-2 text-right font-bold ${b.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>${b.net.toFixed(2)}</td>
+                                    {/* CHANGED: $ to ₹ */}
+                                    <td className={`p-2 text-right font-bold ${b.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>₹{b.net.toFixed(2)}</td>
                                 </tr>
                             ))}
                         </tbody>
