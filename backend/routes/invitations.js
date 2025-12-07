@@ -1,4 +1,3 @@
-// routes/invitation.js
 const router = require("express").Router();
 const auth = require("../middleware/auth");
 const crypto = require("crypto");
@@ -6,8 +5,15 @@ const Trip = require("../models/trip.model");
 const User = require("../models/user.model");
 const Invitation = require("../models/Invitation");
 
-const FRONTEND_URL = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
-const DEFAULT_FROM_NAME = process.env.EMAIL_FROM_NAME || "TripSplit App";
+// Determine the URL based on where the code is running
+// If SENDGRID_API_KEY exists (Production), use Render URL.
+// Otherwise, use localhost.
+const isProduction = process.env.NODE_ENV === 'production' || process.env.SENDGRID_API_KEY;
+const FRONTEND_URL = isProduction 
+  ? 'https://tour-money-calculator-hcq4.onrender.com' 
+  : 'http://localhost:5173';
+
+const DEFAULT_FROM_NAME = "TripSplit App";
 
 // --- EMAIL SENDER: Try SendGrid, fallback to Nodemailer (Gmail) ---
 let sendEmail;
@@ -28,14 +34,11 @@ try {
 } catch (sgErr) {
   // Fallback to Nodemailer (Gmail SMTP)
   const nodemailer = require("nodemailer");
+  
+  // Use the SAME transporter config that worked for auth.js
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  });
-
-  transporter.verify((err, success) => {
-    if (err) console.warn("Nodemailer verify failed:", err.message);
-    else console.log("Nodemailer is ready to send messages");
   });
 
   sendEmail = async (to, subject, htmlContent) => {
@@ -54,42 +57,7 @@ try {
 }
 
 /* -------------------------------------------------------------------------- */
-/* BACKEND FALLBACK PAGE: Serve a simple HTML page for direct clicks          */
-/* This prevents "Not Found" when frontend static hosting doesn't rewrite     */
-/* -------------------------------------------------------------------------- */
-router.get("/accept-invite", (req, res) => {
-  const token = req.query.token || "";
-  const frontendLogin = `${FRONTEND_URL}/auth?next=/accept-invite?token=${encodeURIComponent(token)}`;
-  const frontendAcceptHash = `${FRONTEND_URL}/#/accept-invite?token=${encodeURIComponent(token)}`;
-  const frontendAccept = `${FRONTEND_URL}/accept-invite?token=${encodeURIComponent(token)}`;
-
-  const html = `
-    <html>
-      <head><meta charset="utf-8"><title>Invitation - TripSplit</title></head>
-      <body style="font-family: Arial, Helvetica, sans-serif;line-height:1.6;max-width:700px;margin:4rem auto;padding:1rem;">
-        <h2>TripSplit Invitation</h2>
-        <p>To accept this invitation you need to be logged in.</p>
-        <p>
-          <a href="${frontendLogin}" style="display:inline-block;padding:10px 14px;background:#006b74;color:#fff;text-decoration:none;border-radius:6px;margin-right:10px;">
-            Login / Sign up
-          </a>
-          <a href="${frontendAccept}" style="display:inline-block;padding:8px 12px;border:1px solid #006b74;color:#006b74;text-decoration:none;border-radius:6px;margin-right:10px;">
-            Open Frontend (if your frontend supports deep links)
-          </a>
-          <a href="${frontendAcceptHash}" style="display:inline-block;padding:8px 12px;border:1px solid #006b74;color:#006b74;text-decoration:none;border-radius:6px;">
-            Open (Hash) — works without server rewrites
-          </a>
-        </p>
-        <p style="color:#666;font-size:0.9rem">If the login button doesn't redirect back automatically, copy/paste this token into the frontend:</p>
-        <pre style="background:#f7f7f7;padding:12px;border-radius:6px;overflow:auto;">${token}</pre>
-      </body>
-    </html>
-  `;
-  res.status(200).send(html);
-});
-
-/* -------------------------------------------------------------------------- */
-/* ROUTE: Send an Invitation                                                   */
+/* ROUTE: Send an Invitation                                                  */
 /* -------------------------------------------------------------------------- */
 router.post("/send", auth, async (req, res) => {
   const { email, tripId } = req.body;
@@ -132,10 +100,10 @@ router.post("/send", auth, async (req, res) => {
 
     await newInvitation.save();
 
-    // 6. Build invite links (both normal and hash fallback)
+    // 6. Build invite links
+    // IMPORTANT: This uses the FRONTEND_URL calculated at the top
     const inviteLink = `${FRONTEND_URL}/accept-invite?token=${token}`;
-    const inviteLinkHash = `${FRONTEND_URL}/#/accept-invite?token=${token}`;
-
+    
     const html = `
       <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.4;color:#111">
         <h3>TripSplit Invitation</h3>
@@ -145,9 +113,8 @@ router.post("/send", auth, async (req, res) => {
             Accept Invitation
           </a>
         </p>
-        <p style="font-size:0.9em;color:#555">If that link shows a "Not Found" page, use this alternate link (works without server rewrites):</p>
-        <p style="font-size:0.9em;color:#006b74;word-break:break-all"><a href="${inviteLinkHash}">${inviteLinkHash}</a></p>
-        <p style="font-size:0.85em;color:#666">If you don't have an account, you'll be asked to sign up first.</p>
+        <p style="font-size:0.9em;color:#555">Or copy this link:</p>
+        <p style="font-size:0.9em;color:#006b74;word-break:break-all"><a href="${inviteLink}">${inviteLink}</a></p>
       </div>
     `;
 
@@ -155,8 +122,8 @@ router.post("/send", auth, async (req, res) => {
       await sendEmail(invitedEmail, `You're invited to join the trip: ${trip.name}`, html);
       return res.json({ msg: "Invitation sent successfully!" });
     } catch (emailErr) {
-      console.error("Invitation Email Error:", emailErr?.response?.body || emailErr.message || emailErr);
-      // Clean up the created invitation if email fails
+      console.error("Invitation Email Error:", emailErr);
+      // Clean up if email fails
       await Invitation.findByIdAndDelete(newInvitation._id).catch(() => {});
       return res.status(500).json({ msg: "Error sending invitation email." });
     }
@@ -167,7 +134,7 @@ router.post("/send", auth, async (req, res) => {
 });
 
 /* -------------------------------------------------------------------------- */
-/* ROUTE: Accept an Invitation                                                  */
+/* ROUTE: Accept an Invitation                                                */
 /* -------------------------------------------------------------------------- */
 router.post("/accept", auth, async (req, res) => {
   const { token } = req.body;
@@ -182,13 +149,13 @@ router.post("/accept", auth, async (req, res) => {
     const trip = await Trip.findById(invite.tripId);
     if (!trip) return res.status(404).json({ msg: "Trip no longer exists." });
 
-    // 3. Add the current user to the trip members (avoid duplicates)
+    // 3. Add user to members (avoid duplicates)
     if (!trip.members.includes(req.user.id) && trip.userId.toString() !== req.user.id) {
       trip.members.push(req.user.id);
       await trip.save();
     }
 
-    // 4. Delete the invitation (it's used now)
+    // 4. Delete the invitation
     await Invitation.findByIdAndDelete(invite._id);
 
     return res.json({ msg: "You have successfully joined the trip!", tripId: trip._id });
