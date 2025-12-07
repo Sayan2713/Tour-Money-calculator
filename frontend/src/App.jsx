@@ -14,7 +14,7 @@ import ContactPage from "./pages/ContactPage";
 import ProfilePage from "./pages/ProfilePage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
-import ForgotPassword from "./pages/ForgotPassword"; // <--- NEW: Added Import
+import ForgotPassword from "./pages/ForgotPassword"; 
 
 export default function App() {
   const { token } = useAuth();
