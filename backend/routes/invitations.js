@@ -10,7 +10,7 @@ const Invitation = require("../models/Invitation");
 // Otherwise, use localhost.
 const isProduction = process.env.NODE_ENV === 'production' || process.env.SENDGRID_API_KEY;
 const FRONTEND_URL = isProduction 
-  ? 'https://tour-money-calculator-hcq4.onrender.com' 
+  ? 'tour-money-calculator-ss1u.vercel.app' 
   : 'http://localhost:5173';
 
 const DEFAULT_FROM_NAME = "TripSplit App";
