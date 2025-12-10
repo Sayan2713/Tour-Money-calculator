@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "384c8757-f25a-4b8a-afc2-d24bd41b5b14"
+      }
+    },
+    "android": {
+      "package": "com.sayan_2713.tripsplit"
+    }
+  }
+}

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react'; // <-- Added useEffect
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../api'; // <-- Need api to fetch image
+import api from '../api';
 
 const NavBar = ({ onLogout }) => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [userImage, setUserImage] = useState(null); // <-- Store image
+  const [userImage, setUserImage] = useState(null);
   const navigate = useNavigate();
 
   // Fetch user image on load
@@ -23,12 +23,28 @@ const NavBar = ({ onLogout }) => {
     navigate('/');
     setTimeout(() => {
       const element = document.getElementById(id);
-      if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (element) {
+        // Offset for sticky header
+        const navbarHeight = 80; 
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - navbarHeight;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth"
+        });
+      }
     }, 50);
     setMobileMenuOpen(false);
     setProfileOpen(false);
   };
   
+  const switchPage = (path) => {
+    navigate(path);
+    setMobileMenuOpen(false);
+    setProfileOpen(false);
+  };
+
   // Links
   const scrollLinks = [
     { name: 'Trip Setup', id: 'section-1-trip' },
@@ -50,7 +66,7 @@ const NavBar = ({ onLogout }) => {
           
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
-            <Link to="/" className="text-2xl font-bold text-blue-600 cursor-pointer" onClick={() => setMobileMenuOpen(false)}>
+            <Link to="/" className="text-2xl font-bold text-blue-600 cursor-pointer" onClick={() => { window.scrollTo(0,0); setMobileMenuOpen(false); }}>
               TripSplit
             </Link>
           </div>
@@ -58,12 +74,12 @@ const NavBar = ({ onLogout }) => {
           {/* Desktop Menu */}
           <div className="hidden md:flex md:items-center md:space-x-4">
             {scrollLinks.map(item => (
-              <button key={item.id} onClick={() => scrollTo(item.id)} className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+              <button key={item.id} onClick={() => scrollTo(item.id)} className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                 {item.name}
               </button>
             ))}
             {pageLinks.map(item => (
-              <Link key={item.path} to={item.path} className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+              <Link key={item.path} to={item.path} className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                 {item.name}
               </Link>
             ))}
@@ -71,15 +87,14 @@ const NavBar = ({ onLogout }) => {
 
           {/* Profile & Mobile Button */}
           <div className="flex items-center">
-            <div className="relative ml-3">
+            {/* Desktop Profile Dropdown */}
+            <div className="hidden md:block relative ml-3">
               <div>
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
-                  // Removed onBlur to prevent closing when clicking dropdown items
                   className="bg-gray-200 flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   <span className="sr-only">Open user menu</span>
-                  {/* --- DYNAMIC IMAGE --- */}
                   {userImage ? (
                     <img className="h-8 w-8 rounded-full object-cover" src={userImage} alt="" />
                   ) : (
@@ -97,11 +112,16 @@ const NavBar = ({ onLogout }) => {
               )}
             </div>
 
-            {/* Mobile Button */}
+            {/* Mobile Menu Button (Hamburger) */}
             <div className="ml-2 -mr-2 flex items-center md:hidden">
               <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
+                <span className="sr-only">Open main menu</span>
                 <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                  {mobileMenuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                  )}
                 </svg>
               </button>
             </div>
@@ -109,16 +129,40 @@ const NavBar = ({ onLogout }) => {
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* --- MOBILE MENU DROPDOWN --- */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-gray-200">
+        <div className="md:hidden border-t border-gray-200 bg-white shadow-lg absolute w-full left-0 z-50">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+            {/* Scroll Links */}
             {scrollLinks.map(item => (
-              <button key={item.id} onClick={() => scrollTo(item.id)} className="text-gray-700 hover:bg-gray-50 w-full text-left block px-3 py-2 rounded-md text-base font-medium">{item.name}</button>
+              <button key={item.id} onClick={() => scrollTo(item.id)} className="text-gray-700 hover:bg-gray-50 w-full text-left block px-3 py-2 rounded-md text-base font-medium border-b border-gray-100">
+                {item.name}
+              </button>
             ))}
+            
+            {/* Page Links */}
             {pageLinks.map(item => (
-              <Link key={item.path} to={item.path} onClick={() => setMobileMenuOpen(false)} className="text-gray-700 hover:bg-gray-50 w-full text-left block px-3 py-2 rounded-md text-base font-medium">{item.name}</Link>
+              <Link key={item.path} to={item.path} onClick={() => setMobileMenuOpen(false)} className="text-gray-700 hover:bg-gray-50 w-full text-left block px-3 py-2 rounded-md text-base font-medium border-b border-gray-100">
+                {item.name}
+              </Link>
             ))}
+
+            {/* Profile Links (Visible in Menu on Mobile) */}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center px-3 mb-3">
+                    {userImage ? (
+                        <img className="h-8 w-8 rounded-full object-cover mr-2" src={userImage} alt="" />
+                    ) : (
+                        <div className="h-8 w-8 rounded-full bg-gray-300 mr-2 flex items-center justify-center text-gray-600">
+                            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path></svg>
+                        </div>
+                    )}
+                    <span className="font-medium text-gray-800">My Account</span>
+                </div>
+                <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50">Your Profile</Link>
+                <Link to="/password" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50">Change Password</Link>
+                <button onClick={() => { onLogout(); setMobileMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:text-red-800 hover:bg-gray-50">Logout</button>
+            </div>
           </div>
         </div>
       )}

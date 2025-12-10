@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Trip Split",
+    "slug": "TripSplitMobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/Sayanlogo.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/Sayanlogo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/Sayanlogo.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.sayan_2713.TripSplitMobile"
+    },
+    "web": {
+      "favicon": "./assets/Sayanlogo.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "58b241b6-cb69-4c19-9c1f-a6a570e9faec"
+      }
+    }
+  }
+}
