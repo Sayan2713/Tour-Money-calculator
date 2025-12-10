@@ -4,7 +4,7 @@ import { useAuth } from "./context/AuthContext"; // Corrected path
 
 // Layout & Route Components
 import Layout from "./components/Layout";
-import ScrollToTop from './components/ScrollToTop';
+// import ScrollToTop from './components/ScrollToTop';
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import CopyrightPage from './pages/CopyrightPage';
