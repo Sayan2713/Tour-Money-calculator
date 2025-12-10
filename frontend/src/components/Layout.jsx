@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import NavBar from './NavBar';
 import Footer from './Footer';
-import { useAuth } from '../context/AuthContext'; // <-- Typo fixed: 'AuthCOntext' -> 'AuthContext'
+import { useAuth } from '../context/AuthContext';
 
 const Layout = () => {
   const { logout } = useAuth();

@@ -4,7 +4,12 @@ import { useAuth } from "./context/AuthContext"; // Corrected path
 
 // Layout & Route Components
 import Layout from "./components/Layout";
+import ScrollToTop from './components/ScrollToTop';
+
 import ProtectedRoute from "./components/ProtectedRoute";
+import CopyrightPage from './pages/CopyrightPage';
+import TermsAndConditionsPage from './pages/TermsAndConditionsPage';
+import HowToUsePage from './pages/HowToUsePage';
 
 // Page Components
 import AuthScreen from "./components/AuthScreen";
@@ -42,8 +47,15 @@ export default function App() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+
+          {/* legal / help pages (must match Footer Link `to` paths) */}
+          <Route path="copyright" element={<CopyrightPage />} />
+          <Route path="terms" element={<TermsAndConditionsPage />} />
+          <Route path="how-to-use" element={<HowToUsePage />} />
+          
           {/* Change Password is for logged-in users */}
           <Route path="/password" element={<ChangePasswordPage />} />
+          
         </Route>
       </Route>
 
