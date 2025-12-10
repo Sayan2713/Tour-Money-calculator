@@ -1,19 +1,21 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, Modal, ActivityIndicator, SafeAreaView, Image, Platform } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
+import { Ionicons } from '@expo/vector-icons'; 
 import DateTimePicker from '@react-native-community/datetimepicker'; 
 
 // 🌍 LIVE BACKEND URL
 const API_BASE_URL = 'https://tripsplit-api.onrender.com'; 
 
-// --- HELPER COMPONENTS (Moved OUTSIDE App to fix keyboard focus) ---
+// --- HELPER COMPONENTS (Moved OUTSIDE App) ---
 
 const DateInput = ({ value, onChange, placeholder, onPress }) => (
     <View style={styles.inputContainer}>
         <TextInput 
-            style={[styles.input, {marginBottom:0, flex:1, borderWidth:0}]} 
-            placeholder={placeholder} 
+            style={[styles.input, {marginBottom:0, flex:1, borderWidth:0, color:'#000'}]} 
+            placeholder={placeholder}
+            placeholderTextColor="#888" 
             value={value} 
             onChangeText={onChange} 
             maxLength={10} 
@@ -29,14 +31,15 @@ const PasswordInput = ({ placeholder, value, onChangeText }) => {
     return (
         <View style={styles.passContainer}>
             <TextInput 
-                style={[styles.input, {flex:1, marginBottom:0, borderWidth:0}]} 
-                placeholder={placeholder} 
+                style={[styles.input, {flex:1, marginBottom:0, borderWidth:0, color:'#000'}]} 
+                placeholder={placeholder}
+                placeholderTextColor="#888" 
                 value={value} 
                 onChangeText={onChangeText} 
                 secureTextEntry={!visible} 
             />
             <TouchableOpacity onPress={() => setVisible(!visible)} style={{padding:10}}>
-                <Text>{visible ? '👁️' : '🔒'}</Text>
+                <Ionicons name={visible ? "eye-off" : "eye"} size={20} color="#555" />
             </TouchableOpacity>
         </View>
     )
@@ -45,7 +48,7 @@ const PasswordInput = ({ placeholder, value, onChangeText }) => {
 export default function App() {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [view, setView] = useState('auth'); // auth, list, details
+  const [view, setView] = useState('auth'); 
   
   // --- AUTH STATE ---
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -78,18 +81,12 @@ export default function App() {
   // --- FORMS ---
   const [newTripName, setNewTripName] = useState('');
   const [newParticipantName, setNewParticipantName] = useState('');
-  
-  // Expense Form
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [expenseForm, setExpenseForm] = useState({ title: '', amount: '', payer: '', category: 'Food', sharedBy: [] });
-  
-  // Invite Form
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteTrip, setInviteTrip] = useState(null);
-
-  // Date Picker State
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateField, setDateField] = useState(''); 
 
@@ -156,7 +153,6 @@ export default function App() {
       setForgotStep(1);
       setShowForgotModal(true);
   };
-
   const handleForgotStep1 = async () => {
     try {
       await axios.post(`${API_BASE_URL}/auth/forgot-init`, { email: forgotData.email, dob: forgotData.dob });
@@ -233,12 +229,12 @@ export default function App() {
   };
 
   // ------------------------------------------------------------------
-  // 2. DATA & POLLING (FIXED)
+  // 2. DATA & POLLING
   // ------------------------------------------------------------------
   useEffect(() => {
     if (!token || !selectedTrip) return;
     const interval = setInterval(() => {
-       fetchDetails(selectedTrip, true); // Silent refresh
+       fetchDetails(selectedTrip, true); 
     }, 5000); 
     return () => clearInterval(interval);
   }, [token, selectedTrip]);
@@ -255,20 +251,16 @@ export default function App() {
         setLoading(true);
         setView('details'); 
         setSelectedTrip(trip);
-        
-        // --- FIX: Clear old data immediately ---
+        // FIX: Clear old data immediately
         setParticipants([]);
         setExpenses([]);
     }
-
     try {
       const pRes = await axios.get(`${API_BASE_URL}/participants/${trip._id}`, { headers: { 'x-auth-token': token } });
       const eRes = await axios.get(`${API_BASE_URL}/expenses/${trip._id}`, { headers: { 'x-auth-token': token } });
-      
       setParticipants(pRes.data);
       setExpenses(eRes.data);
     } catch (err) { if (!silent) Alert.alert("Error", "Could not load trip details"); }
-    
     if (!silent) setLoading(false);
   };
 
@@ -330,21 +322,12 @@ export default function App() {
     ]);
   };
 
-  // FIX #1: Separated Save Logic from Refresh Logic
   const handleSaveExpense = async () => {
     if(!expenseForm.title || !expenseForm.amount || !expenseForm.payer || expenseForm.sharedBy.length === 0) {
         return Alert.alert("Missing Fields", "Please fill all fields and select at least one person to share.");
     }
-    
-    const payload = {
-        ...expenseForm,
-        amount: parseFloat(expenseForm.amount),
-        tripId: selectedTrip._id
-    };
-
+    const payload = { ...expenseForm, amount: parseFloat(expenseForm.amount), tripId: selectedTrip._id };
     let saveSuccess = false;
-
-    // 1. Attempt Save
     try {
       if (editingExpense) {
           await axios.put(`${API_BASE_URL}/expenses/update/${editingExpense._id}`, payload, { headers: { 'x-auth-token': token } });
@@ -354,39 +337,24 @@ export default function App() {
       saveSuccess = true;
     } catch (err) { 
         Alert.alert("Error", "Failed to save expense. Please try again."); 
-        return; // Stop here if save failed
+        return; 
     }
-
-    // 2. If Save Successful, Update UI and Refresh
     if (saveSuccess) {
       setShowExpenseModal(false);
       setEditingExpense(null);
       setExpenseTitle('');
       setExpenseAmount('');
-      
-      // Try refresh silently - errors here won't trigger an alert
-      try {
-        await fetchDetails(selectedTrip, true); 
-      } catch (e) { console.log("Silent refresh failed"); }
+      try { await fetchDetails(selectedTrip, true); } catch (e) { console.log("Silent refresh failed"); }
     }
   };
 
   const openExpenseModal = (expense = null) => {
       if (expense) {
           setEditingExpense(expense);
-          setExpenseForm({
-              title: expense.title,
-              amount: expense.amount.toString(),
-              payer: expense.payer,
-              category: expense.category,
-              sharedBy: expense.sharedBy
-          });
+          setExpenseForm({ title: expense.title, amount: expense.amount.toString(), payer: expense.payer, category: expense.category, sharedBy: expense.sharedBy });
       } else {
           setEditingExpense(null);
-          setExpenseForm({
-              title: '', amount: '', payer: '', category: 'Food', 
-              sharedBy: participants.map(p => p.name)
-          });
+          setExpenseForm({ title: '', amount: '', payer: '', category: 'Food', sharedBy: participants.map(p => p.name) });
       }
       setShowExpenseModal(true);
   };
@@ -394,11 +362,8 @@ export default function App() {
   const toggleShare = (name) => {
       setExpenseForm(prev => {
           const current = prev.sharedBy;
-          if (current.includes(name)) {
-              return { ...prev, sharedBy: current.filter(n => n !== name) };
-          } else {
-              return { ...prev, sharedBy: [...current, name] };
-          }
+          if (current.includes(name)) return { ...prev, sharedBy: current.filter(n => n !== name) };
+          else return { ...prev, sharedBy: [...current, name] };
       });
   };
 
@@ -414,15 +379,8 @@ export default function App() {
     ]);
   }
 
-  // ------------------------------------------------------------------
-  // UI HELPERS & DATE PICKER
-  // ------------------------------------------------------------------
-  
-  const openDatePicker = (field) => {
-      setDateField(field); 
-      setShowDatePicker(true); 
-  };
-
+  // --- HELPERS ---
+  const openDatePicker = (field) => { setDateField(field); setShowDatePicker(true); };
   const handleDateChange = (event, selectedDate) => {
       setShowDatePicker(false);
       if (selectedDate) {
@@ -433,16 +391,13 @@ export default function App() {
       }
   };
 
-  // --- CALCULATION LOGIC ---
+  // --- CALCULATION ---
   const settlement = useMemo(() => {
     if (!participants.length || !expenses.length) return { netPayments: [], totalSpent: 0 };
-    
     const pNames = participants.map(p => p.name);
     const matrix = {};
     const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0);
-
     pNames.forEach(p => { matrix[p] = {}; pNames.forEach(q => matrix[p][q] = 0); });
-
     expenses.forEach(e => {
         const validSharers = e.sharedBy.filter(n => pNames.includes(n));
         if (!validSharers.length) return;
@@ -451,7 +406,6 @@ export default function App() {
             if (pName !== e.payer && pNames.includes(e.payer)) matrix[pName][e.payer] += split;
         });
     });
-    
     const netPayments = [];
     const seen = new Set();
     pNames.forEach(p => {
@@ -459,13 +413,8 @@ export default function App() {
             if (p === q) return;
             const net = matrix[p][q] - matrix[q][p];
             const key = [p, q].sort().join('-');
-            if (net > 0.01 && !seen.has(key)) { 
-                netPayments.push({ from: p, to: q, amount: net });
-                seen.add(key);
-            } else if (net < -0.01 && !seen.has(key)) {
-                netPayments.push({ from: q, to: p, amount: -net });
-                seen.add(key);
-            }
+            if (net > 0.01 && !seen.has(key)) { netPayments.push({ from: p, to: q, amount: net }); seen.add(key); }
+            else if (net < -0.01 && !seen.has(key)) { netPayments.push({ from: q, to: p, amount: -net }); seen.add(key); }
         });
     });
     return { netPayments, totalSpent };
@@ -484,19 +433,25 @@ export default function App() {
             <Text style={styles.title}>TripSplit</Text>
             <Text style={styles.subtitle}>{isLoginMode ? 'Login' : 'Create Account'}</Text>
             
-            <TextInput style={styles.input} placeholder="Email" value={authData.email} onChangeText={t => setAuthData({...authData, email:t})} autoCapitalize="none" />
-            
-            {/* Login Mode: Only Email & Pass */}
             {isLoginMode ? (
-                <PasswordInput placeholder="Password" value={authData.password} onChangeText={t => setAuthData({...authData, password:t})} />
+              <>
+                 <Text style={styles.label}>Email</Text>
+                 <TextInput style={styles.input} placeholder="Email" value={authData.email} onChangeText={t => setAuthData({...authData, email:t})} autoCapitalize="none" placeholderTextColor="#888" />
+                 
+                 <Text style={styles.label}>Password</Text>
+                 <PasswordInput placeholder="Password" value={authData.password} onChangeText={t => setAuthData({...authData, password:t})} />
+              </>
             ) : (
                 // Signup Mode: Ordered Correctly with Labels
                 <>
                   <Text style={styles.label}>Full Name</Text>
-                  <TextInput style={styles.input} placeholder="Full Name" value={authData.name} onChangeText={t => setAuthData({...authData, name:t})} />
+                  <TextInput style={styles.input} placeholder="Full Name" value={authData.name} onChangeText={t => setAuthData({...authData, name:t})} placeholderTextColor="#888" />
                   
+                  <Text style={styles.label}>Email</Text>
+                  <TextInput style={styles.input} placeholder="Email ID" value={authData.email} onChangeText={t => setAuthData({...authData, email:t})} autoCapitalize="none" placeholderTextColor="#888" />
+
                   <Text style={styles.label}>Mobile</Text>
-                  <TextInput style={styles.input} placeholder="Mobile" value={authData.mobile} onChangeText={t => setAuthData({...authData, mobile:t})} keyboardType="phone-pad" />
+                  <TextInput style={styles.input} placeholder="Mobile" value={authData.mobile} onChangeText={t => setAuthData({...authData, mobile:t})} keyboardType="phone-pad" placeholderTextColor="#888" />
                   
                   <Text style={styles.label}>Date of Birth</Text>
                   <DateInput value={authData.dob} onChange={t => setAuthData({...authData, dob:t})} placeholder="YYYY-MM-DD" onPress={() => openDatePicker('dob')} />
@@ -533,7 +488,7 @@ export default function App() {
               {forgotStep === 1 && (
                   <>
                     <Text style={styles.label}>Email Address</Text>
-                    <TextInput style={styles.input} placeholder="Email" value={forgotData.email} onChangeText={t => setForgotData({...forgotData, email:t})} />
+                    <TextInput style={styles.input} placeholder="Email" value={forgotData.email} onChangeText={t => setForgotData({...forgotData, email:t})} placeholderTextColor="#888" />
                     
                     <Text style={styles.label}>Date of Birth</Text>
                     <DateInput value={forgotData.dob} onChange={t => setForgotData({...forgotData, dob:t})} placeholder="DOB (YYYY-MM-DD)" onPress={() => openDatePicker('forgotDob')} />
@@ -542,10 +497,11 @@ export default function App() {
                     <TouchableOpacity style={styles.button} onPress={handleForgotStep1}><Text style={styles.btnText}>Next</Text></TouchableOpacity>
                   </>
               )}
+              {/* ... (Steps 2 & 3 same as before) ... */}
               {forgotStep === 2 && (
                   <>
                      <Text style={styles.label}>Enter OTP</Text>
-                     <TextInput style={styles.input} placeholder="Enter OTP" value={forgotData.otp} onChangeText={t => setForgotData({...forgotData, otp:t})} />
+                     <TextInput style={styles.input} placeholder="Enter OTP" value={forgotData.otp} onChangeText={t => setForgotData({...forgotData, otp:t})} placeholderTextColor="#888" />
                      <TouchableOpacity style={styles.button} onPress={handleForgotStep2}><Text style={styles.btnText}>Verify</Text></TouchableOpacity>
                   </>
               )}
@@ -571,7 +527,7 @@ export default function App() {
            <SafeAreaView style={styles.modalContainer}>
               <Text style={styles.title}>Verify Email</Text>
               <Text style={{marginBottom:20, textAlign:'center'}}>Enter the OTP sent to {authData.email}</Text>
-              <TextInput style={styles.input} placeholder="OTP" value={verifyOtp} onChangeText={setVerifyOtp} />
+              <TextInput style={styles.input} placeholder="OTP" value={verifyOtp} onChangeText={setVerifyOtp} placeholderTextColor="#888" />
               <TouchableOpacity style={styles.button} onPress={handleVerifySignup}><Text style={styles.btnText}>Verify & Login</Text></TouchableOpacity>
               <TouchableOpacity style={[styles.button, {backgroundColor:'#ccc', marginTop:10}]} onPress={() => setShowVerifyModal(false)}>
                  <Text style={styles.btnText}>Cancel</Text>
@@ -672,9 +628,10 @@ export default function App() {
         <Modal visible={showEditProfileModal} animationType="slide">
             <SafeAreaView style={styles.modalContainer}>
                 <Text style={styles.title}>Edit Profile</Text>
-                <TextInput style={styles.input} placeholder="Name" value={editProfileData.name} onChangeText={t => setEditProfileData({...editProfileData, name:t})} />
-                <TextInput style={styles.input} placeholder="Mobile" value={editProfileData.mobile} onChangeText={t => setEditProfileData({...editProfileData, mobile:t})} keyboardType="phone-pad" />
+                <TextInput style={styles.input} placeholder="Name" value={editProfileData.name} onChangeText={t => setEditProfileData({...editProfileData, name:t})} placeholderTextColor="#888" />
+                <TextInput style={styles.input} placeholder="Mobile" value={editProfileData.mobile} onChangeText={t => setEditProfileData({...editProfileData, mobile:t})} keyboardType="phone-pad" placeholderTextColor="#888" />
                 <DateInput value={editProfileData.dob} onChange={t => setEditProfileData({...editProfileData, dob:t})} placeholder="DOB (YYYY-MM-DD)" onPress={() => openDatePicker('editDob')} />
+                
                 <View style={styles.pickerBox}>
                     <Picker selectedValue={editProfileData.gender} onValueChange={v => setEditProfileData({...editProfileData, gender:v})}>
                         <Picker.Item label="Select Gender" value="" />
@@ -695,9 +652,15 @@ export default function App() {
         <Modal visible={showChangePassModal} animationType="slide">
            <SafeAreaView style={styles.modalContainer}>
                <Text style={styles.title}>Change Password</Text>
+               <Text style={styles.label}>Old Password</Text>
                <PasswordInput placeholder="Old Password" value={passData.oldPassword} onChangeText={t => setPassData({...passData, oldPassword:t})} />
                <View style={{height:10}} />
+               <Text style={styles.label}>New Password</Text>
                <PasswordInput placeholder="New Password" value={passData.newPassword} onChangeText={t => setPassData({...passData, newPassword:t})} />
+               <View style={{height:10}} />
+               <Text style={styles.label}>Confirm New Password</Text>
+               {/* Added Confirm Password Input for Change Password */}
+               <PasswordInput placeholder="Confirm New Password" value={passData.confirmPassword || ''} onChangeText={t => setPassData({...passData, confirmPassword:t})} />
                <View style={{height:20}} />
                <TouchableOpacity style={styles.button} onPress={handleChangePassword}><Text style={styles.btnText}>Update</Text></TouchableOpacity>
                <TouchableOpacity style={[styles.button, {backgroundColor:'#ccc', marginTop:10}]} onPress={() => setShowChangePassModal(false)}><Text style={styles.btnText}>Close</Text></TouchableOpacity>
@@ -712,7 +675,10 @@ export default function App() {
             {view === 'list' && (
                 <>
                     <View style={styles.row}>
-                        <TextInput style={[styles.input, {flex:1, marginBottom:0}]} placeholder="New Trip Name" value={newTripName} onChangeText={setNewTripName} />
+                        <Text style={[styles.label, {flex: 1, marginBottom: 0, marginRight: 10}]}>Create Trip</Text>
+                    </View>
+                    <View style={styles.row}>
+                        <TextInput style={[styles.input, {flex:1, marginBottom:0}]} placeholder="New Trip Name" value={newTripName} onChangeText={setNewTripName} placeholderTextColor="#888" />
                         <TouchableOpacity style={styles.smallBtn} onPress={handleAddTrip}><Text style={styles.smallBtnText}>Create</Text></TouchableOpacity>
                     </View>
                     <View style={{marginTop:20}}>
@@ -747,8 +713,9 @@ export default function App() {
                     {/* Participants */}
                     <View style={styles.card}>
                         <Text style={styles.cardTitle}>Participants</Text>
+                        <Text style={styles.label}>Add Participant Name</Text>
                         <View style={styles.row}>
-                            <TextInput style={[styles.input, {flex:1, marginBottom:0}]} placeholder="Name" value={newParticipantName} onChangeText={setNewParticipantName} />
+                            <TextInput style={[styles.input, {flex:1, marginBottom:0}]} placeholder="Name" value={newParticipantName} onChangeText={setNewParticipantName} placeholderTextColor="#888" />
                             <TouchableOpacity style={styles.smallBtn} onPress={handleAddParticipant}><Text style={styles.smallBtnText}>Add</Text></TouchableOpacity>
                         </View>
                         <View style={styles.chipContainer}>
@@ -824,7 +791,7 @@ export default function App() {
             <View style={styles.modalOverlay}>
                 <View style={styles.modalBox}>
                     <Text style={styles.modalTitle}>Invite Friend</Text>
-                    <TextInput style={styles.input} placeholder="Friend's Email" value={inviteEmail} onChangeText={setInviteEmail} autoCapitalize="none" />
+                    <TextInput style={styles.input} placeholder="Friend's Email" value={inviteEmail} onChangeText={setInviteEmail} autoCapitalize="none" placeholderTextColor="#888" />
                     <TouchableOpacity style={[styles.button, {backgroundColor:'#673ab7'}]} onPress={handleSendInvite}><Text style={styles.btnText}>Send Invite</Text></TouchableOpacity>
                     <TouchableOpacity style={[styles.button, {backgroundColor:'#ccc', marginTop:10}]} onPress={() => setShowInviteModal(false)}><Text style={styles.btnText}>Close</Text></TouchableOpacity>
                 </View>
@@ -836,8 +803,10 @@ export default function App() {
             <SafeAreaView style={styles.modalContainer}>
                 <Text style={styles.title}>{editingExpense ? 'Edit Expense' : 'Add Expense'}</Text>
                 
-                <TextInput style={styles.input} placeholder="Title" value={expenseForm.title} onChangeText={t => setExpenseForm({...expenseForm, title:t})} />
-                <TextInput style={styles.input} placeholder="Amount" value={expenseForm.amount} onChangeText={t => setExpenseForm({...expenseForm, amount:t})} keyboardType="numeric" />
+                <Text style={styles.label}>Title</Text>
+                <TextInput style={styles.input} placeholder="Title" value={expenseForm.title} onChangeText={t => setExpenseForm({...expenseForm, title:t})} placeholderTextColor="#888" />
+                <Text style={styles.label}>Amount</Text>
+                <TextInput style={styles.input} placeholder="Amount" value={expenseForm.amount} onChangeText={t => setExpenseForm({...expenseForm, amount:t})} keyboardType="numeric" placeholderTextColor="#888" />
                 
                 <Text style={styles.label}>Category</Text>
                 <View style={styles.pickerBox}>
@@ -881,12 +850,14 @@ const styles = StyleSheet.create({
   scrollAuth: { padding: 20, justifyContent: 'center', flexGrow: 1 },
   
   authBox: { backgroundColor: '#fff', padding: 20, borderRadius: 15, elevation: 5 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#0288d1', textAlign: 'center', marginBottom: 5 }, // Sky Blue
+  title: { fontSize: 26, fontWeight: 'bold', color: '#0288d1', textAlign: 'center', marginBottom: 5 },
   subtitle: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 20 },
-  input: { backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#b3e5fc', marginBottom: 15 },
+  
+  input: { backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#b3e5fc', marginBottom: 15, color: '#000' },
   passContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor:'#fff', borderRadius:8, borderWidth:1, borderColor:'#b3e5fc', marginBottom:15 },
   inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#b3e5fc', marginBottom: 15, paddingHorizontal: 12 },
-  button: { backgroundColor: '#0288d1', padding: 15, borderRadius: 8, alignItems: 'center' }, // Sky Blue
+  
+  button: { backgroundColor: '#0288d1', padding: 15, borderRadius: 8, alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   linkText: { marginTop: 15, textAlign: 'center', color: '#0288d1' },
 
@@ -898,7 +869,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 10 },
   smallBtn: { backgroundColor: '#0288d1', padding: 12, borderRadius: 8, justifyContent: 'center' },
   smallBtnText: { color: '#fff', fontWeight: 'bold' },
-  actionBtn: { backgroundColor: '#ff9800', padding: 15, borderRadius: 8, alignItems: 'center', marginBottom: 20 }, // Sunrise Orange
+  actionBtn: { backgroundColor: '#ff9800', padding: 15, borderRadius: 8, alignItems: 'center', marginBottom: 20 },
 
   tripCard: { backgroundColor: '#fff', padding: 20, borderRadius: 10, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems:'center', elevation: 2, borderLeftWidth: 5, borderLeftColor: '#0288d1' },
   tripText: { fontSize: 18, fontWeight: '600', color:'#333' },
@@ -933,7 +904,6 @@ const styles = StyleSheet.create({
   
   inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#b3e5fc', marginBottom: 15, paddingHorizontal: 12 },
   
-  // New style for outlined buttons
   outlineBtn: {
       paddingHorizontal: 10,
       paddingVertical: 5,
