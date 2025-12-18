@@ -674,7 +674,8 @@ export default function HomePage() {
       }
     });
 
-    const allNamesSet = new Set(currentNames);
+    const allNamesSet = new Set([...currentNames, ...namesFromExpenses]);
+
 
     const allNames = Array.from(allNamesSet);
     if (!allNames.length)
