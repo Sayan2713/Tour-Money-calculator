@@ -32,7 +32,17 @@ const userSchema = new Schema({
   otpExpires: { 
     type: Date, 
     default: null 
-  }
+  },
+ 
+  subscriptionPlan: {
+    type: String,
+    enum: ['free', 'basic', 'advance', 'premium'],
+    default: 'free'
+  },
+  subscriptionExpiresAt: {
+  type: Date,
+  default: null
+}
 }, {
   timestamps: true,
 });

@@ -6,16 +6,20 @@ const NavBar = ({ onLogout }) => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userImage, setUserImage] = useState(null);
+  const [subscription, setSubscription] = useState('free'); // Track subscription
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Fetch user image on load
+  // Fetch user image & subscription on load
   useEffect(() => {
     api
       .get("/users")
       .then((res) => {
         if (res.data.profilePicture) {
           setUserImage(res.data.profilePicture);
+        }
+        if (res.data.subscriptionPlan) {
+            setSubscription(res.data.subscriptionPlan);
         }
       })
       .catch((err) => console.log("Nav load error", err));
@@ -28,25 +32,27 @@ const NavBar = ({ onLogout }) => {
 
   // ✅ FIXED scroll logic (dynamic navbar height)
   const scrollTo = (id) => {
-    navigate("/");
+    const doScroll = () => {
+      setTimeout(() => {
+        const element = document.getElementById(id);
+        const navbar = document.querySelector("nav");
+        if (element) {
+          const navbarHeight = navbar ? navbar.offsetHeight : 0;
+          const elementPosition = element.getBoundingClientRect().top;
+          const offsetPosition =
+            elementPosition + window.pageYOffset - navbarHeight - 8;
+          window.scrollTo({ top: offsetPosition, behavior: "smooth" });
+        }
+      }, 100);
+    };
 
-    setTimeout(() => {
-      const element = document.getElementById(id);
-      const navbar = document.querySelector("nav");
-
-      if (element) {
-        const navbarHeight = navbar ? navbar.offsetHeight : 0;
-        const elementPosition = element.getBoundingClientRect().top;
-        const offsetPosition =
-          elementPosition + window.pageYOffset - navbarHeight - 8;
-
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: "smooth",
-        });
-      }
-    }, 100);
-
+    if (location.pathname !== "/") {
+      navigate("/");
+      // wait for navigation then scroll
+      setTimeout(doScroll, 100);
+    } else {
+      doScroll();
+    }
     setMobileMenuOpen(false);
     setProfileOpen(false);
   };
@@ -70,6 +76,9 @@ const NavBar = ({ onLogout }) => {
     { name: "About Us", path: "/about" },
     { name: "Contact Us", path: "/contact" },
   ];
+
+  // Helper to check if user has ANY paid plan
+  const isPaidUser = ['basic', 'advance', 'premium'].includes(subscription);
 
   return (
     <nav className="bg-white shadow-md sticky top-0 z-40 w-full">
@@ -100,6 +109,14 @@ const NavBar = ({ onLogout }) => {
                 {item.name}
               </button>
             ))}
+            
+            {/* NEW: Graphs Button (Only for Paid Users) */}
+            {isPaidUser && (
+                <Link to="/graphs" className="text-gray-500  hover:text-gray-900 px-3 py-2 rounded-md text-sm transition-colors">
+                     Graphs
+                </Link>
+            )}
+
             {pageLinks.map((item) => (
               <Link
                 key={item.path}
@@ -109,6 +126,13 @@ const NavBar = ({ onLogout }) => {
                 {item.name}
               </Link>
             ))}
+            {/* Upgrade Button (Desktop) */}
+            <Link
+              to="/subscription"
+              className="text-yellow-600 font-bold hover:text-yellow-700 px-3 py-2 border border-yellow-500 rounded-md"
+            >
+              👑 Upgrade
+            </Link>
           </div>
 
           {/* Profile & Mobile Button */}
@@ -220,6 +244,13 @@ const NavBar = ({ onLogout }) => {
                 {item.name}
               </button>
             ))}
+            
+            {/* Mobile Graphs Link */}
+            {isPaidUser && (
+                <Link to="/graphs" onClick={() => setMobileMenuOpen(false)} className="text-gray-700 hover:bg-gray-50 w-full text-left block px-3 py-2 rounded-md text-base border-b border-gray-100">
+                     Graphs
+                </Link>
+            )}
 
             {pageLinks.map((item) => (
               <Link
@@ -231,6 +262,14 @@ const NavBar = ({ onLogout }) => {
                 {item.name}
               </Link>
             ))}
+            
+            <Link
+              to="/subscription"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-yellow-600 font-bold hover:bg-gray-50 w-full text-left block px-3 py-2 rounded-md text-base border-b border-gray-100"
+            >
+              👑 Upgrade Plan
+            </Link>
 
             <div className="mt-4 pt-4 border-t border-gray-200">
               <div className="flex items-center px-3 mb-3">

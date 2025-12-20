@@ -45,6 +45,30 @@ router.put('/update', auth, async (req, res) => {
   }
 });
 
+router.put('/subscription', auth, async (req, res) => {
+    const { plan } = req.body; 
+
+    // Validate plan
+    if (!['free', 'basic', 'advance', 'premium'].includes(plan)) {
+        return res.status(400).json({ msg: 'Invalid plan type' });
+    }
+
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        // Update the plan
+        user.subscriptionPlan = plan;
+        await user.save();
+        
+        console.log(`User ${user.email} upgraded to ${plan}`); // Add logging for debug
+        res.json({ msg: `Subscription updated to ${plan}`, plan: user.subscriptionPlan });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 // --- DELETE: Delete Account ---
 router.delete('/delete', auth, async (req, res) => {
   try {

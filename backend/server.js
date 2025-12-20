@@ -44,6 +44,9 @@ const startServer = async () => {
     app.use('/participants', participantsRouter);
     app.use('/expenses', expensesRouter);
     app.use('/users', usersRouter);
+    app.use('/payments', require('./routes/payments'));
+    app.use('/graphs', require('./routes/graphs'));
+
 
     // 3. Now, start the Express server
     app.listen(PORT, () => {

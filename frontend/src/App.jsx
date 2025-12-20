@@ -20,6 +20,8 @@ import ProfilePage from "./pages/ProfilePage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
 import ForgotPassword from "./pages/ForgotPassword"; 
+import SubscriptionPage from "./pages/SubscriptionPage";
+import GraphPage from "./pages/GraphPage";
 
 export default function App() {
   const { token } = useAuth();
@@ -47,6 +49,8 @@ export default function App() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/subscription" element={<SubscriptionPage />} />
+          <Route path="/graphs" element={<GraphPage />} />
 
           {/* legal / help pages (must match Footer Link `to` paths) */}
           <Route path="copyright" element={<CopyrightPage />} />

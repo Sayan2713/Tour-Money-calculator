@@ -656,79 +656,51 @@ export default function HomePage() {
 
   // --- Settlement calculation (fix: include historical names referenced by expenses) ---
   const settlement = useMemo(() => {
-    if (!expenses.length)
+    if (!expenses.length || !participants.length) {
       return { netPayments: [], totalSpent: 0, balances: [] };
+    }
 
-    const currentNames = participants.map((p) => p.name);
-    const namesFromExpenses = new Set();
-
-    expenses.forEach((e) => {
-      if (e.payer) namesFromExpenses.add(e.payer);
-      (e.sharedBy || []).forEach((n) => namesFromExpenses.add(n));
-      if (e.splitDetails && Array.isArray(e.splitDetails)) {
-        e.splitDetails.forEach((d) => {
-          if (d && d.name) namesFromExpenses.add(d.name);
-        });
-      } else if (e.splitDetails && typeof e.splitDetails === "object") {
-        Object.keys(e.splitDetails).forEach((k) => namesFromExpenses.add(k));
-      }
-    });
-
-    const allNamesSet = new Set([...currentNames, ...namesFromExpenses]);
-
-
-    const allNames = Array.from(allNamesSet);
-    if (!allNames.length)
-      return { netPayments: [], totalSpent: 0, balances: [] };
+    const allNames = participants.map((p) => p.name);
+    const allNamesSet = new Set(allNames);
 
     const matrix = {};
-    const totalSpent = expenses.reduce(
-      (sum, e) => sum + (parseFloat(e.amount) || 0),
-      0
-    );
     allNames.forEach((p) => {
       matrix[p] = {};
       allNames.forEach((q) => (matrix[p][q] = 0));
     });
 
+    const totalSpent = expenses.reduce(
+      (sum, e) => sum + (parseFloat(e.amount) || 0),
+      0
+    );
+
     expenses.forEach((e) => {
+      if (!allNamesSet.has(e.payer)) return;
+
       if (e.splitType === "EQUAL" || !e.splitType) {
-        const valid = (e.sharedBy || []).filter((n) => allNamesSet.has(n));
-        if (!valid.length) return;
-        const split = (parseFloat(e.amount) || 0) / valid.length;
-        valid.forEach((pn) => {
-          if (pn !== e.payer && allNamesSet.has(e.payer))
-            matrix[pn][e.payer] += split;
-        });
-      } else {
-        if (e.splitDetails) {
-          if (Array.isArray(e.splitDetails)) {
-            e.splitDetails.forEach((d) => {
-              if (
-                d.name !== e.payer &&
-                allNamesSet.has(d.name) &&
-                allNamesSet.has(e.payer)
-              )
-                matrix[d.name][e.payer] += parseFloat(d.amount) || 0;
-            });
-          } else {
-            Object.keys(e.splitDetails).forEach((nameKey) => {
-              const d = e.splitDetails[nameKey];
-              const amt = parseFloat(d?.amount || d?.value || 0);
-              if (
-                nameKey !== e.payer &&
-                allNamesSet.has(nameKey) &&
-                allNamesSet.has(e.payer)
-              )
-                matrix[nameKey][e.payer] += amt;
-            });
+        const validSharers = (e.sharedBy || []).filter((n) =>
+          allNamesSet.has(n)
+        );
+        if (!validSharers.length) return;
+
+        const split = (parseFloat(e.amount) || 0) / validSharers.length;
+        validSharers.forEach((name) => {
+          if (name !== e.payer) {
+            matrix[name][e.payer] += split;
           }
-        }
+        });
+      } else if (Array.isArray(e.splitDetails)) {
+        e.splitDetails.forEach((d) => {
+          if (allNamesSet.has(d.name) && d.name !== e.payer) {
+            matrix[d.name][e.payer] += parseFloat(d.amount) || 0;
+          }
+        });
       }
     });
 
     const netPayments = [];
     const checked = new Set();
+
     allNames.forEach((p) => {
       allNames.forEach((q) => {
         if (p === q || checked.has(`${p}-${q}`) || checked.has(`${q}-${p}`))
@@ -741,29 +713,25 @@ export default function HomePage() {
       });
     });
 
-    const balances = allNames.map((pName) => {
+    const balances = allNames.map((name) => {
       const paid = expenses
-        .filter((e) => e.payer === pName)
-        .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+        .filter((e) => e.payer === name)
+        .reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+
       let share = 0;
       expenses.forEach((e) => {
         if (e.splitType === "EQUAL" || !e.splitType) {
-          const validSharers = (e.sharedBy || []).filter((n) =>
-            allNamesSet.has(n)
-          );
-          if (validSharers.includes(pName))
-            share += (parseFloat(e.amount) || 0) / validSharers.length;
-        } else {
-          if (Array.isArray(e.splitDetails)) {
-            const d = e.splitDetails.find((x) => x.name === pName);
-            if (d) share += parseFloat(d.amount) || 0;
-          } else if (e.splitDetails && e.splitDetails[pName]) {
-            const d = e.splitDetails[pName];
-            share += parseFloat(d.amount || d.value) || 0;
+          const valid = (e.sharedBy || []).filter((n) => allNamesSet.has(n));
+          if (valid.includes(name)) {
+            share += (parseFloat(e.amount) || 0) / valid.length;
           }
+        } else if (Array.isArray(e.splitDetails)) {
+          const d = e.splitDetails.find((x) => x.name === name);
+          if (d) share += parseFloat(d.amount) || 0;
         }
       });
-      return { name: pName, paid, share, net: paid - share };
+
+      return { name, paid, share, net: paid - share };
     });
 
     return { netPayments, totalSpent, balances };

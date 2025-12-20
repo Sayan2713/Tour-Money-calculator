@@ -1,0 +1,3 @@
+test key ID=rzp_test_RtuDSgnNMnJyzP
+
+test key srcret = eSKXYcvJZUeZ56bgEAcyn1SJ
