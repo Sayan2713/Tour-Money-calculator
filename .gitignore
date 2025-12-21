@@ -13,3 +13,6 @@ build/
 # Misc
 .DS_Store
 .vscode/
+
+/babel.config.js
+/src
