@@ -75,7 +75,7 @@ const Footer = () => {
 
             {/* Centered APK download button */}
             <a
-              href="/TripSplit5.7.apk"
+              href="/TripSplitV5.7.apk"
               download="TripSplit5.7.apk"
               className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm"
             >
