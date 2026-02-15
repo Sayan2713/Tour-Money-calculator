@@ -9,6 +9,8 @@ import { API_BASE_URL } from '../config';
 export default function AuthScreen({ onLogin }) {
     const [isLoginMode, setIsLoginMode] = useState(true);
     const [authLoading, setAuthLoading] = useState(false);
+    
+    // Auth State
     const [authData, setAuthData] = useState({ email: '', password: '', confirmPassword: '', name: '', mobile: '', dob: '' });
     
     const [showForgotModal, setShowForgotModal] = useState(false);
@@ -53,7 +55,15 @@ export default function AuthScreen({ onLogin }) {
     const handleForgotStep3 = async () => { if (forgotData.newPassword !== forgotData.confirmPassword) { Alert.alert("Error", "Passwords do not match"); return; } try { await axios.post(`${API_BASE_URL}/auth/forgot-reset`, { email: forgotData.email, otp: forgotData.otp, newPassword: forgotData.newPassword }); setShowForgotModal(false); setForgotStep(1); Alert.alert("Success", "Password reset! Please login."); } catch (err) { Alert.alert("Error", "Reset failed"); } };
 
     const openDatePicker = (field) => { setDateField(field); setShowDatePicker(true); };
-    const handleDateChange = (e, selectedDate) => { setShowDatePicker(false); if(selectedDate) { const d = selectedDate.toISOString().split('T')[0]; if(dateField==='dob') setAuthData({...authData, dob:d}); else setForgotData({...forgotData, dob:d}); }};
+    
+    const handleDateChange = (e, selectedDate) => { 
+        setShowDatePicker(false); 
+        if(selectedDate) { 
+            const d = selectedDate.toISOString().split('T')[0]; 
+            if(dateField==='dob') setAuthData(prev => ({...prev, dob:d})); 
+            else setForgotData(prev => ({...prev, dob:d})); 
+        }
+    };
 
     return (
         <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
@@ -64,24 +74,68 @@ export default function AuthScreen({ onLogin }) {
                     {isLoginMode ? (
                         <>
                             <Text style={styles.label}>Email</Text>
-                            <TextInput style={styles.input} placeholder="Email" value={authData.email} onChangeText={t => setAuthData({...authData, email:t})} autoCapitalize="none" placeholderTextColor="#888" />
+                            <TextInput 
+                                style={styles.input} 
+                                placeholder="Email" 
+                                value={authData.email} 
+                                onChangeText={t => setAuthData(prev => ({...prev, email:t}))} // ✅ Fixed Auto-fill
+                                autoCapitalize="none" 
+                                placeholderTextColor="#888" 
+                            />
                             <Text style={styles.label}>Password</Text>
-                            <PasswordInput placeholder="Password" value={authData.password} onChangeText={t => setAuthData({...authData, password:t})} />
+                            <PasswordInput 
+                                placeholder="Password" 
+                                value={authData.password} 
+                                onChangeText={t => setAuthData(prev => ({...prev, password:t}))} // ✅ Fixed Auto-fill
+                            />
                         </>
                     ) : (
                         <>
                             <Text style={styles.label}>Full Name</Text>
-                            <TextInput style={styles.input} placeholder="Full Name" value={authData.name} onChangeText={t => setAuthData({...authData, name:t})} placeholderTextColor="#888" />
+                            <TextInput 
+                                style={styles.input} 
+                                placeholder="Full Name" 
+                                value={authData.name} 
+                                onChangeText={t => setAuthData(prev => ({...prev, name:t}))} // ✅ Fixed Auto-fill
+                                placeholderTextColor="#888" 
+                            />
                             <Text style={styles.label}>Email</Text>
-                            <TextInput style={styles.input} placeholder="Email ID" value={authData.email} onChangeText={t => setAuthData({...authData, email:t})} autoCapitalize="none" placeholderTextColor="#888" />
+                            <TextInput 
+                                style={styles.input} 
+                                placeholder="Email ID" 
+                                value={authData.email} 
+                                onChangeText={t => setAuthData(prev => ({...prev, email:t}))} // ✅ Fixed Auto-fill
+                                autoCapitalize="none" 
+                                placeholderTextColor="#888" 
+                            />
                             <Text style={styles.label}>Mobile</Text>
-                            <TextInput style={styles.input} placeholder="Mobile" value={authData.mobile} onChangeText={t => setAuthData({...authData, mobile:t})} keyboardType="phone-pad" placeholderTextColor="#888" />
+                            <TextInput 
+                                style={styles.input} 
+                                placeholder="Mobile" 
+                                value={authData.mobile} 
+                                onChangeText={t => setAuthData(prev => ({...prev, mobile:t}))} // ✅ Fixed Auto-fill
+                                keyboardType="phone-pad" 
+                                placeholderTextColor="#888" 
+                            />
                             <Text style={styles.label}>Date of Birth</Text>
-                            <DateInput value={authData.dob} onChange={t => setAuthData({...authData, dob:t})} placeholder="YYYY-MM-DD" onPress={() => openDatePicker('dob')} />
+                            <DateInput 
+                                value={authData.dob} 
+                                onChange={t => setAuthData(prev => ({...prev, dob:t}))} 
+                                placeholder="YYYY-MM-DD" 
+                                onPress={() => openDatePicker('dob')} 
+                            />
                             <Text style={styles.label}>Password</Text>
-                            <PasswordInput placeholder="Password" value={authData.password} onChangeText={t => setAuthData({...authData, password:t})} />
+                            <PasswordInput 
+                                placeholder="Password" 
+                                value={authData.password} 
+                                onChangeText={t => setAuthData(prev => ({...prev, password:t}))} // ✅ Fixed Auto-fill
+                            />
                             <Text style={styles.label}>Confirm Password</Text>
-                            <PasswordInput placeholder="Confirm Password" value={authData.confirmPassword} onChangeText={t => setAuthData({...authData, confirmPassword:t})} />
+                            <PasswordInput 
+                                placeholder="Confirm Password" 
+                                value={authData.confirmPassword} 
+                                onChangeText={t => setAuthData(prev => ({...prev, confirmPassword:t}))} // ✅ Fixed Auto-fill
+                            />
                         </>
                     )}
                     <View style={{height:20}} />
@@ -105,9 +159,20 @@ export default function AuthScreen({ onLogin }) {
                     {forgotStep === 1 && (
                         <>
                             <Text style={styles.label}>Email Address</Text>
-                            <TextInput style={styles.input} placeholder="Email" value={forgotData.email} onChangeText={t => setForgotData({...forgotData, email:t})} placeholderTextColor="#888" />
+                            <TextInput 
+                                style={styles.input} 
+                                placeholder="Email" 
+                                value={forgotData.email} 
+                                onChangeText={t => setForgotData(prev => ({...prev, email:t}))} // ✅ Fixed Auto-fill
+                                placeholderTextColor="#888" 
+                            />
                             <Text style={styles.label}>Date of Birth</Text>
-                            <DateInput value={forgotData.dob} onChange={t => setForgotData({...forgotData, dob:t})} placeholder="DOB (YYYY-MM-DD)" onPress={() => openDatePicker('forgotDob')} />
+                            <DateInput 
+                                value={forgotData.dob} 
+                                onChange={t => setForgotData(prev => ({...prev, dob:t}))} 
+                                placeholder="DOB (YYYY-MM-DD)" 
+                                onPress={() => openDatePicker('forgotDob')} 
+                            />
                             <View style={{height:10}} />
                             <TouchableOpacity style={styles.button} onPress={handleForgotStep1}><Text style={styles.btnText}>Next</Text></TouchableOpacity>
                         </>
@@ -115,17 +180,31 @@ export default function AuthScreen({ onLogin }) {
                     {forgotStep === 2 && (
                         <>
                             <Text style={styles.label}>Enter OTP</Text>
-                            <TextInput style={styles.input} placeholder="Enter OTP" value={forgotData.otp} onChangeText={t => setForgotData({...forgotData, otp:t})} placeholderTextColor="#888" />
+                            <TextInput 
+                                style={styles.input} 
+                                placeholder="Enter OTP" 
+                                value={forgotData.otp} 
+                                onChangeText={t => setForgotData(prev => ({...prev, otp:t}))} 
+                                placeholderTextColor="#888" 
+                            />
                             <TouchableOpacity style={styles.button} onPress={handleForgotStep2}><Text style={styles.btnText}>Verify</Text></TouchableOpacity>
                         </>
                     )}
                     {forgotStep === 3 && (
                         <>
                             <Text style={styles.label}>New Password</Text>
-                            <PasswordInput placeholder="New Password" value={forgotData.newPassword} onChangeText={t => setForgotData({...forgotData, newPassword:t})} />
+                            <PasswordInput 
+                                placeholder="New Password" 
+                                value={forgotData.newPassword} 
+                                onChangeText={t => setForgotData(prev => ({...prev, newPassword:t}))} 
+                            />
                             <View style={{height:10}} />
                             <Text style={styles.label}>Confirm New Password</Text>
-                            <PasswordInput placeholder="Confirm New Password" value={forgotData.confirmPassword} onChangeText={t => setForgotData({...forgotData, confirmPassword:t})} />
+                            <PasswordInput 
+                                placeholder="Confirm New Password" 
+                                value={forgotData.confirmPassword} 
+                                onChangeText={t => setForgotData(prev => ({...prev, confirmPassword:t}))} 
+                            />
                             <View style={{height:20}} />
                             <TouchableOpacity style={styles.button} onPress={handleForgotStep3}><Text style={styles.btnText}>Reset</Text></TouchableOpacity>
                         </>
@@ -138,7 +217,13 @@ export default function AuthScreen({ onLogin }) {
                 <SafeAreaView style={styles.modalContainer}>
                     <Text style={styles.title}>Verify Email</Text>
                     <Text style={{marginBottom:20, textAlign:'center'}}>Enter the OTP sent to {authData.email}</Text>
-                    <TextInput style={styles.input} placeholder="OTP" value={verifyOtp} onChangeText={setVerifyOtp} placeholderTextColor="#888" />
+                    <TextInput 
+                        style={styles.input} 
+                        placeholder="OTP" 
+                        value={verifyOtp} 
+                        onChangeText={setVerifyOtp} 
+                        placeholderTextColor="#888" 
+                    />
                     <TouchableOpacity style={styles.button} onPress={handleVerifySignup}><Text style={styles.btnText}>Verify & Login</Text></TouchableOpacity>
                     <TouchableOpacity style={[styles.button, {backgroundColor:'#ccc', marginTop:10}]} onPress={() => setShowVerifyModal(false)}><Text style={styles.btnText}>Cancel</Text></TouchableOpacity>
                 </SafeAreaView>
@@ -150,7 +235,9 @@ export default function AuthScreen({ onLogin }) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, justifyContent: 'center', backgroundColor: '#e1f5fe', padding: 20 },
+    // ✅ Fix Jumping: Removed justifyContent: 'center' from here
+    container: { flex: 1, backgroundColor: '#e1f5fe', padding: 20 },
+    // ✅ ScrollView handles the centering now
     scrollAuth: { padding: 20, justifyContent: 'center', flexGrow: 1 },
     authBox: { backgroundColor: '#fff', padding: 20, borderRadius: 15, elevation: 5 },
     title: { fontSize: 26, fontWeight: 'bold', color: '#0288d1', textAlign: 'center', marginBottom: 5 },

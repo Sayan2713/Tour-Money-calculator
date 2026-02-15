@@ -95,7 +95,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-        {/* ✅ FIX: Status Bar Visibility */}
+        {/* Status Bar Visibility */}
         <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent={true} />
 
         {/* Header */}
@@ -105,7 +105,7 @@ export default function App() {
                     <Image source={{uri: userProfile.profilePicture}} style={{width:35, height:35, borderRadius:20}} />
                 ) : (
                     <View style={{width:35, height:35, borderRadius:20, backgroundColor:'#ccc', justifyContent:'center', alignItems:'center'}}>
-                        {/* ✅ FIX: Profile Initial */}
+                        {/* Profile Initial */}
                         <Text style={{color:'#fff', fontWeight:'bold', fontSize: 18}}>
                             {userProfile?.name ? userProfile.name.charAt(0).toUpperCase() : 'U'}
                         </Text>
@@ -154,8 +154,7 @@ const styles = StyleSheet.create({
     safeArea: { 
         flex: 1, 
         backgroundColor: '#f5f5f5', 
-        // ✅ FIX: This forces the app content to start BELOW the status bar on Android
-        // On iOS, SafeAreaView handles this automatically.
+        // This forces the app content to start BELOW the status bar on Android
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 
     },
     header: { 
@@ -165,7 +164,6 @@ const styles = StyleSheet.create({
         padding: 15, 
         backgroundColor: '#fff', 
         elevation: 3,
-        // Optional: Add a small border for visual separation
         borderBottomWidth: 1,
         borderBottomColor: '#eee'
     },

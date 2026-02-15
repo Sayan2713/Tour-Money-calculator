@@ -2,9 +2,9 @@
   "expo": {
     "name": "Trip Split",
     "slug": "TripSplitMobile",
-    "version": "3.1",
+    "version": "5.7",
     "orientation": "portrait",
-    "icon": "./assets/Sayanlogo.png",
+    "icon": "./assets/SayanLogo7.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
